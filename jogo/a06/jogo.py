@@ -1,6 +1,7 @@
 import pygame
 import os
 import sys
+import random
 
 # Inicialização
 pygame.init()
@@ -24,9 +25,10 @@ FONT = pygame.font.SysFont("arial", 24)
 FPS = 60
 clock = pygame.time.Clock()
 
-# Imagens
-IMG_DIR = "images"
+# Diretórios
+IMG_DIR = "jogo/animation/images"
 
+# Carregar imagem
 def load_img(name):
     path = os.path.join(IMG_DIR, name)
     return pygame.transform.scale(pygame.image.load(path), (64, 64))
@@ -39,7 +41,7 @@ player_sprites = {
     "crouch": load_img("player_crouch.png")
 }
 
-# Inimigo Sprites (1, 2, 3)
+# Inimigos
 enemy_sprites = [load_img(f"enemy{i}.png") for i in range(1, 4)]
 target_sprite = load_img("target.png")
 
@@ -97,13 +99,13 @@ class Player:
         for enemy in enemies:
             enemy_rect = pygame.Rect(enemy.x, enemy.y, 64, 64)
             if self.rect.colliderect(enemy_rect):
-                if self.weapon == 1:  # Mãos
+                if self.weapon == 1:
                     return enemy.hit("melee")
-                elif self.weapon == 2:  # Pistola
+                elif self.weapon == 2:
                     return enemy.hit("pistol")
-                elif self.weapon == 3:  # Sedativo
+                elif self.weapon == 3:
                     return enemy.hit("sedative")
-                elif self.weapon == 4:  # Garrote
+                elif self.weapon == 4:
                     return enemy.hit("garrote")
         return None
 
@@ -114,11 +116,26 @@ class Enemy:
         self.y = y
         self.is_target = is_target
         self.alive = True
-        self.sprite = target_sprite if is_target else enemy_sprites[pygame.time.get_ticks() % 3]
+        self.sprite = target_sprite if is_target else random.choice(enemy_sprites)
+        self.rect = pygame.Rect(self.x, self.y, 64, 64)
+        self.direction = random.choice([(1, 0), (-1, 0), (0, 1), (0, -1)])
+        self.move_timer = pygame.time.get_ticks()
 
     def draw(self, win):
         if self.alive:
             win.blit(self.sprite, (self.x, self.y))
+
+    def update(self):
+        if not self.alive:
+            return
+        now = pygame.time.get_ticks()
+        if now - self.move_timer > 1000:
+            self.direction = random.choice([(1, 0), (-1, 0), (0, 1), (0, -1)])
+            self.move_timer = now
+        dx, dy = self.direction
+        self.x += dx
+        self.y += dy
+        self.rect.topleft = (self.x, self.y)
 
     def hit(self, weapon):
         if weapon == "sedative":
@@ -143,7 +160,7 @@ class Phase:
         self.enemies = [Enemy(100 * i, 100, is_target=(i == 2)) for i in range(1, 4)]
         self.completed = False
         self.start_time = pygame.time.get_ticks()
-        self.max_time = 300000  # 5 minutos
+        self.max_time = 300000
         self.points = 0
 
     def draw(self, win):
@@ -151,7 +168,8 @@ class Phase:
             enemy.draw(win)
 
     def update(self):
-        self.enemies = [e for e in self.enemies if e.alive]
+        for enemy in self.enemies:
+            enemy.update()
         if not any(e.is_target and e.alive for e in self.enemies):
             self.completed = True
 
