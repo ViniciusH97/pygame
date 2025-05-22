@@ -1,49 +1,65 @@
 import pygame
 import os
+import sys
 
-# Inicializa o Pygame
+# Inicialização
 pygame.init()
 
-# Constantes de tela
+# Tela
 WIDTH, HEIGHT = 960, 540
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Mini Hitman Isométrico")
+pygame.display.set_caption("Mini Hitman - Visão de Cima")
 
 # Cores
 WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+GRAY = (50, 50, 50)
 
-# FPS e relógio
+# Fonte
+FONT = pygame.font.SysFont("arial", 24)
+
+# Clock e FPS
 FPS = 60
 clock = pygame.time.Clock()
 
-# Pasta de imagens
+# Imagens
 IMG_DIR = "images"
 
-# Carregar sprites do personagem
-player_idle = pygame.image.load(os.path.join(IMG_DIR, "player_idle.png"))
-player_walk = pygame.image.load(os.path.join(IMG_DIR, "player_walk.png"))
-player_crouch = pygame.image.load(os.path.join(IMG_DIR, "player_crouch.png"))
-player_run = pygame.image.load(os.path.join(IMG_DIR, "player_run.png"))
+def load_img(name):
+    path = os.path.join(IMG_DIR, name)
+    return pygame.transform.scale(pygame.image.load(path), (64, 64))
 
-# Redimensionar se necessário
-player_idle = pygame.transform.scale(player_idle, (64, 64))
-player_walk = pygame.transform.scale(player_walk, (64, 64))
-player_crouch = pygame.transform.scale(player_crouch, (64, 64))
-player_run = pygame.transform.scale(player_run, (64, 64))
+# Player Sprites (Idle, Walk, Run, Crouch)
+player_sprites = {
+    "idle": load_img("player_idle.png"),
+    "walk": load_img("player_walk.png"),
+    "run": load_img("player_run.png"),
+    "crouch": load_img("player_crouch.png")
+}
 
-# Classe do jogador
+# Inimigo Sprites (1, 2, 3)
+enemy_sprites = [load_img(f"enemy{i}.png") for i in range(1, 4)]
+target_sprite = load_img("target.png")
+
+# Armas
+weapons = {1: "Mãos", 2: "Pistola", 3: "Sedativo", 4: "Garrote"}
+
+# Classe Jogador
 class Player:
     def __init__(self, x, y):
         self.x = x
         self.y = y
         self.speed = 2
         self.state = "idle"
-        self.image = player_idle
+        self.weapon = 1
+        self.health = 100
+        self.image = player_sprites[self.state]
 
     def handle_input(self, keys):
         dx, dy = 0, 0
         self.state = "idle"
-
         if keys[pygame.K_LCTRL]:
             self.state = "crouch"
             self.speed = 1
@@ -65,27 +81,81 @@ class Player:
         self.x += dx
         self.y += dy
 
+        for i in range(1, 5):
+            if keys[getattr(pygame, f"K_{i}")]:
+                self.weapon = i
+
     def update_image(self):
-        if self.state == "idle":
-            self.image = player_idle
-        elif self.state == "walk":
-            self.image = player_walk
-        elif self.state == "crouch":
-            self.image = player_crouch
-        elif self.state == "run":
-            self.image = player_run
+        self.image = player_sprites[self.state]
 
     def draw(self, win):
         win.blit(self.image, (self.x, self.y))
 
-# Instancia jogador
-player = Player(WIDTH//2, HEIGHT//2)
+# Classe Inimigo
+class Enemy:
+    def __init__(self, x, y, is_target=False):
+        self.x = x
+        self.y = y
+        self.is_target = is_target
+        self.sprite = target_sprite if is_target else enemy_sprites[pygame.time.get_ticks() % 3]
 
-# Loop principal
+    def draw(self, win):
+        win.blit(self.sprite, (self.x, self.y))
+
+# HUD
+def draw_hud(win, points, weapon, time_left, health):
+    hud_text = FONT.render(f"Pontos: {points}  |  Arma: {weapons[weapon]}  |  Tempo: {int(time_left)}s", True, BLACK)
+    win.blit(hud_text, (10, 10))
+    pygame.draw.rect(win, GRAY, (WIDTH - 40, HEIGHT - 110, 20, 100))
+    pygame.draw.rect(win, RED, (WIDTH - 40, HEIGHT - 10 - health, 20, health))
+
+# Fase
+class Phase:
+    def __init__(self, number):
+        self.number = number
+        self.enemies = [Enemy(100 * i, 100, is_target=(i == 2)) for i in range(1, 4)]
+        self.completed = False
+        self.start_time = pygame.time.get_ticks()
+        self.max_time = 300000  # 5 minutos
+        self.points = 0
+
+    def draw(self, win):
+        for enemy in self.enemies:
+            enemy.draw(win)
+
+    def update(self):
+        pass  # Coloque lógica de IA e colisão aqui
+
+    def check_victory(self):
+        return self.completed
+
+# Menu
+def menu():
+    while True:
+        WIN.fill(WHITE)
+        title = FONT.render("Mini Hitman - Pressione Enter para Jogar", True, BLACK)
+        WIN.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 20))
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                return
+
+# Main Game
+player = Player(WIDTH//2, HEIGHT//2)
 def main():
+    fases = [Phase(i) for i in range(1, 4)]
+    fase_atual = 0
     run = True
-    while run:
+
+    while run and fase_atual < len(fases):
         clock.tick(FPS)
+        fase = fases[fase_atual]
+        time_elapsed = pygame.time.get_ticks() - fase.start_time
+        time_left = max(0, (fase.max_time - time_elapsed) // 1000)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -94,11 +164,19 @@ def main():
         player.handle_input(keys)
         player.update_image()
 
+        fase.update()
+
         WIN.fill(WHITE)
+        fase.draw(WIN)
         player.draw(WIN)
+        draw_hud(WIN, fase.points, player.weapon, time_left, player.health)
         pygame.display.update()
+
+        if time_left <= 0 or fase.check_victory():
+            fase_atual += 1
 
     pygame.quit()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    menu()
     main()
