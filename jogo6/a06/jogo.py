@@ -1,14 +1,3 @@
-# -*- coding: utf-8 -*-
-
-###############################################################################
-#
-# Mudanças em relação à versão anterior:
-#    - naves inimigas tem comportamento diferente (behaviour)
-#    - painel de estado do jogador (vidas e acertos)
-#    - otimizacoes: lê a imagem somente uma vez. (Game.load_images())
-#
-###############################################################################
-
 import os, sys, copy
 import getopt
 
