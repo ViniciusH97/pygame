@@ -56,6 +56,7 @@ class Player:
         self.weapon = 1
         self.health = 100
         self.image = player_sprites[self.state]
+        self.rect = pygame.Rect(self.x, self.y, 64, 64)
 
     def handle_input(self, keys):
         dx, dy = 0, 0
@@ -80,6 +81,7 @@ class Player:
 
         self.x += dx
         self.y += dy
+        self.rect.topleft = (self.x, self.y)
 
         for i in range(1, 5):
             if keys[getattr(pygame, f"K_{i}")]:
@@ -91,16 +93,41 @@ class Player:
     def draw(self, win):
         win.blit(self.image, (self.x, self.y))
 
+    def attack(self, enemies):
+        for enemy in enemies:
+            enemy_rect = pygame.Rect(enemy.x, enemy.y, 64, 64)
+            if self.rect.colliderect(enemy_rect):
+                if self.weapon == 1:  # Mãos
+                    return enemy.hit("melee")
+                elif self.weapon == 2:  # Pistola
+                    return enemy.hit("pistol")
+                elif self.weapon == 3:  # Sedativo
+                    return enemy.hit("sedative")
+                elif self.weapon == 4:  # Garrote
+                    return enemy.hit("garrote")
+        return None
+
 # Classe Inimigo
 class Enemy:
     def __init__(self, x, y, is_target=False):
         self.x = x
         self.y = y
         self.is_target = is_target
+        self.alive = True
         self.sprite = target_sprite if is_target else enemy_sprites[pygame.time.get_ticks() % 3]
 
     def draw(self, win):
-        win.blit(self.sprite, (self.x, self.y))
+        if self.alive:
+            win.blit(self.sprite, (self.x, self.y))
+
+    def hit(self, weapon):
+        if weapon == "sedative":
+            self.alive = False
+            return (self.is_target, "sedated")
+        elif weapon in ["melee", "pistol", "garrote"]:
+            self.alive = False
+            return (self.is_target, "killed")
+        return None
 
 # HUD
 def draw_hud(win, points, weapon, time_left, health):
@@ -124,10 +151,21 @@ class Phase:
             enemy.draw(win)
 
     def update(self):
-        pass  # Coloque lógica de IA e colisão aqui
+        self.enemies = [e for e in self.enemies if e.alive]
+        if not any(e.is_target and e.alive for e in self.enemies):
+            self.completed = True
 
     def check_victory(self):
         return self.completed
+
+    def handle_attack(self, player):
+        result = player.attack(self.enemies)
+        if result:
+            is_target, method = result
+            if is_target:
+                self.points += 100 if method == "killed" else 50
+            else:
+                self.points -= 25
 
 # Menu
 def menu():
@@ -159,6 +197,8 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                fase.handle_attack(player)
 
         keys = pygame.key.get_pressed()
         player.handle_input(keys)
