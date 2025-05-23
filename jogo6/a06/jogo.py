@@ -41,7 +41,7 @@ bg_layers = [
 player_idle_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(PLAYER_IDLE_DIR, f"row-1-column-{i}.png")).convert_alpha(),
-        (300, 300)  # Aumentar o tamanho do jogador
+        (100, 150)  # Aumentar o tamanho do jogador
     )
     for i in range(1, 5)
 ]
@@ -50,7 +50,7 @@ player_idle_animations = [
 enemy_idle_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(ENEMY_IDLE_DIR, f"row-1-column-{i}.png")).convert_alpha(),
-        (300, 300)  # Aumentar o tamanho do inimigo
+        (100, 150)  # Aumentar o tamanho do inimigo
     )
     for i in range(1, 8)
 ]
@@ -130,17 +130,48 @@ class Enemy(pygame.sprite.Sprite):
             self.image = self.idle_animations[self.image_index]
             self.animation_timer = 0
 
+# Função para renderizar texto com borda
+def render_with_border(text, font, text_color, border_color, border_width):
+    """
+    Renderiza texto com uma borda colorida ao redor.
+    :param text: Texto a ser renderizado.
+    :param font: Fonte do texto.
+    :param text_color: Cor do texto.
+    :param border_color: Cor da borda.
+    :param border_width: Largura da borda.
+    :return: Superfície com o texto renderizado.
+    """
+    # Renderizar o texto principal
+    text_surface = font.render(text, True, text_color)
+
+    # Criar uma superfície para a borda
+    surface = pygame.Surface(
+        (text_surface.get_width() + border_width * 2, text_surface.get_height() + border_width * 2),
+        pygame.SRCALPHA
+    )
+
+    # Renderizar a borda ao redor do texto
+    for dx in [-border_width, 0, border_width]:
+        for dy in [-border_width, 0, border_width]:
+            if dx != 0 or dy != 0:
+                border_surface = font.render(text, True, border_color)
+                surface.blit(border_surface, (dx + border_width, dy + border_width))
+
+    # Renderizar o texto principal no centro
+    surface.blit(text_surface, (border_width, border_width))
+    return surface
+
 # Função para o menu inicial
 def menu():
     clock = pygame.time.Clock()
     running = True
 
     # Fundo do menu
-    menu_background = Background(bg_layers, [0.2 * (i + 1) for i in range(len(bg_layers))])  # Velocidade reduzida
+    menu_background = Background(bg_layers, [0.05 * (i + 1) for i in range(len(bg_layers))])  # Velocidade reduzida
 
-    # Fonte personalizada para o título
-    title_font = pygame.font.SysFont("Times New Roman", 72, bold=True)
-    option_font = pygame.font.SysFont("Arial", 36)
+    # Fonte personalizada para o título e opções
+    title_font = pygame.font.Font(pygame.font.match_font("timesnewroman"), 72)  # Fonte personalizada
+    option_font = pygame.font.Font(pygame.font.match_font("arial"), 36)  # Fonte personalizada
 
     selected_option = 0
     options = ["Novo Jogo", "Sair"]
@@ -171,14 +202,14 @@ def menu():
         screen.fill((0, 0, 0))
         menu_background.draw(screen)
 
-        # Título do jogo
-        title_text = title_font.render("Dark Souls 2D", True, (255, 255, 255))
+        # Título do jogo com borda
+        title_text = render_with_border("Dark Souls 2D", title_font, (255, 255, 255), (0, 0, 0), 3)
         screen.blit(title_text, (WINDOW_WIDTH // 2 - title_text.get_width() // 2, 100))
 
         # Opções do menu
         for i, option in enumerate(options):
             color = (255, 255, 255) if i == selected_option else (150, 150, 150)
-            option_text = option_font.render(option, True, color)
+            option_text = render_with_border(option, option_font, color, (0, 0, 0), 2)
             screen.blit(option_text, (WINDOW_WIDTH // 2 - option_text.get_width() // 2, 300 + i * 50))
 
         pygame.display.flip()
@@ -186,7 +217,7 @@ def menu():
 # Função principal do jogo
 def main():
     # Inicializar objetos do jogo
-    background = Background(bg_layers, [0.1 * (i + 1) for i in range(len(bg_layers))])  # Velocidade reduzida
+    background = Background(bg_layers, [0.05 * (i + 1) for i in range(len(bg_layers))])  # Velocidade reduzida
     player = Player(50, WINDOW_HEIGHT - 200)  # Spawn no canto esquerdo
     enemy = Enemy(WINDOW_WIDTH - 150, WINDOW_HEIGHT - 200)  # Spawn no canto direito
 
