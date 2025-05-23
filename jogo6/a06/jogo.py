@@ -6,64 +6,129 @@ from pygame.locals import *
 pygame.init()
 
 # Configurações da tela
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 600
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Dark Souls 2D")
 
 # Diretórios das imagens
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 IMAGES_DIR = os.path.join(BASE_DIR, "imagens")
-BG_DIR = os.path.join(IMAGES_DIR, "Battleground1", "Pale")
-PLAYER_DIR = os.path.join(IMAGES_DIR, "Knight_1")
-ENEMY_DIR = os.path.join(IMAGES_DIR, "Gorgon_1")
+BG_DIR = os.path.join(IMAGES_DIR, "Battleground4", "Pale")
+PLAYER_IDLE_DIR = os.path.join(IMAGES_DIR, "Knight_1", "idle")
+ENEMY_IDLE_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "idle")
 
-# Carregar imagens de fundo (paralaxe para o menu e jogo)
-menu_bg_layers = [
-    pygame.image.load(os.path.join(BG_DIR, filename)).convert_alpha()
+# Carregar camadas do fundo e redimensionar para caber na janela
+bg_layers = [
+    pygame.transform.scale(
+        pygame.image.load(os.path.join(BG_DIR, filename)).convert_alpha(),
+        (WINDOW_WIDTH, WINDOW_HEIGHT)
+    )
     for filename in [
         "sky.png",
-        "ruins_bg.png",
-        "hills&trees.png",
-        "stones&grass.png",
+        "back_trees.png",
+        "tree.png",
+        "wall.png",
+        "ground.png",
+        "bones.png",
+        "graves.png",
+        "crypt.png",
+        "Battleground4.png",  # Adicionado o chão
     ]
 ]
 
-# Carregar imagens do jogador
-player_image = pygame.image.load(os.path.join(PLAYER_DIR, "Idle.png")).convert_alpha()
+# Carregar animações do jogador (idle) e redimensionar
+player_idle_animations = [
+    pygame.transform.scale(
+        pygame.image.load(os.path.join(PLAYER_IDLE_DIR, f"row-1-column-{i}.png")).convert_alpha(),
+        (300, 300)  # Aumentar o tamanho do jogador
+    )
+    for i in range(1, 5)
+]
 
-# Carregar imagens do inimigo
-enemy_image = pygame.image.load(os.path.join(ENEMY_DIR, "Idle.png")).convert_alpha()
+# Carregar animações do inimigo (idle) e redimensionar
+enemy_idle_animations = [
+    pygame.transform.scale(
+        pygame.image.load(os.path.join(ENEMY_IDLE_DIR, f"row-1-column-{i}.png")).convert_alpha(),
+        (300, 300)  # Aumentar o tamanho do inimigo
+    )
+    for i in range(1, 8)
+]
 
 # Classe para o fundo com paralaxe
 class Background:
-    def __init__(self, layers, speeds, direction="vertical"):
+    def __init__(self, layers, speeds):
         self.layers = layers
         self.speeds = speeds
         self.positions = [0] * len(layers)
-        self.direction = direction
 
-    def update(self, dt):
+    def update(self, player_speed):
         for i in range(len(self.layers)):
-            if self.direction == "vertical":
-                self.positions[i] += self.speeds[i] * dt / 16
-                if self.positions[i] > self.layers[i].get_height():
-                    self.positions[i] -= self.layers[i].get_height()
-            elif self.direction == "horizontal":
-                self.positions[i] -= self.speeds[i] * dt / 16
-                if self.positions[i] < -self.layers[i].get_width():
-                    self.positions[i] += self.layers[i].get_width()
+            self.positions[i] -= self.speeds[i] * player_speed
+            if self.positions[i] < -WINDOW_WIDTH:
+                self.positions[i] += WINDOW_WIDTH
+            elif self.positions[i] > WINDOW_WIDTH:
+                self.positions[i] -= WINDOW_WIDTH
 
     def draw(self, screen):
         for i, layer in enumerate(self.layers):
-            if self.direction == "vertical":
-                pos = self.positions[i]
-                screen.blit(layer, (0, pos))
-                screen.blit(layer, (0, pos - layer.get_height()))
-            elif self.direction == "horizontal":
-                pos = self.positions[i]
-                screen.blit(layer, (pos, 0))
-                screen.blit(layer, (pos + layer.get_width(), 0))
+            pos = self.positions[i]
+            screen.blit(layer, (pos, 0))
+            screen.blit(layer, (pos + WINDOW_WIDTH, 0))
+
+# Classe para o jogador
+class Player(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.idle_animations = player_idle_animations
+        self.image_index = 0
+        self.image = self.idle_animations[self.image_index]
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.speed = 5
+        self.animation_timer = 0
+
+    def update(self, keys, dt):
+        # Atualizar animação de idle
+        self.animation_timer += dt
+        if self.animation_timer > 150:  # Troca de frame a cada 150ms
+            self.image_index = (self.image_index + 1) % len(self.idle_animations)
+            self.image = self.idle_animations[self.image_index]
+            self.animation_timer = 0
+
+        # Movimentação com WASD
+        movement = 0
+        if keys[K_w]:
+            self.rect.y -= self.speed
+        if keys[K_s]:
+            self.rect.y += self.speed
+        if keys[K_a]:
+            self.rect.x -= self.speed
+            movement = -self.speed
+        if keys[K_d]:
+            self.rect.x += self.speed
+            movement = self.speed
+
+        # Limitar o jogador à tela
+        self.rect.clamp_ip(screen.get_rect())
+        return movement
+
+# Classe para o inimigo
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.idle_animations = enemy_idle_animations
+        self.image_index = 0
+        self.image = self.idle_animations[self.image_index]
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.animation_timer = 0
+
+    def update(self, dt):
+        # Atualizar animação de idle
+        self.animation_timer += dt
+        if self.animation_timer > 150:  # Troca de frame a cada 150ms
+            self.image_index = (self.image_index + 1) % len(self.idle_animations)
+            self.image = self.idle_animations[self.image_index]
+            self.animation_timer = 0
 
 # Função para o menu inicial
 def menu():
@@ -71,7 +136,7 @@ def menu():
     running = True
 
     # Fundo do menu
-    menu_background = Background(menu_bg_layers, [1, 2, 3, 4], direction="horizontal")
+    menu_background = Background(bg_layers, [0.2 * (i + 1) for i in range(len(bg_layers))])  # Velocidade reduzida
 
     # Fonte personalizada para o título
     title_font = pygame.font.SysFont("Times New Roman", 72, bold=True)
@@ -100,7 +165,7 @@ def menu():
                         exit()
 
         # Atualizar fundo
-        menu_background.update(dt)
+        menu_background.update(1)
 
         # Desenhar fundo e texto
         screen.fill((0, 0, 0))
@@ -108,29 +173,25 @@ def menu():
 
         # Título do jogo
         title_text = title_font.render("Dark Souls 2D", True, (255, 255, 255))
-        screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, 100))
+        screen.blit(title_text, (WINDOW_WIDTH // 2 - title_text.get_width() // 2, 100))
 
         # Opções do menu
         for i, option in enumerate(options):
             color = (255, 255, 255) if i == selected_option else (150, 150, 150)
             option_text = option_font.render(option, True, color)
-            screen.blit(option_text, (SCREEN_WIDTH // 2 - option_text.get_width() // 2, 300 + i * 50))
+            screen.blit(option_text, (WINDOW_WIDTH // 2 - option_text.get_width() // 2, 300 + i * 50))
 
         pygame.display.flip()
 
 # Função principal do jogo
 def main():
     # Inicializar objetos do jogo
-    game_background = Background(menu_bg_layers, [1, 2, 3, 4])
-    player = Player(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100)
-    enemies = pygame.sprite.Group(
-        Enemy(200, -50),
-        Enemy(400, -150),
-        Enemy(600, -250)
-    )
+    background = Background(bg_layers, [0.1 * (i + 1) for i in range(len(bg_layers))])  # Velocidade reduzida
+    player = Player(50, WINDOW_HEIGHT - 200)  # Spawn no canto esquerdo
+    enemy = Enemy(WINDOW_WIDTH - 150, WINDOW_HEIGHT - 200)  # Spawn no canto direito
 
     # Grupo de sprites
-    all_sprites = pygame.sprite.Group(player, *enemies)
+    all_sprites = pygame.sprite.Group(player, enemy)
 
     # Loop principal do jogo
     clock = pygame.time.Clock()
@@ -144,52 +205,18 @@ def main():
 
         # Atualizar
         keys = pygame.key.get_pressed()
-        player.update(keys)
-        enemies.update()
-        game_background.update(dt)
+        player_movement = player.update(keys, dt)
+        enemy.update(dt)
+        background.update(player_movement)
 
         # Desenhar
         screen.fill((0, 0, 0))
-        game_background.draw(screen)
+        background.draw(screen)
         all_sprites.draw(screen)
 
         pygame.display.flip()
 
     pygame.quit()
-
-# Classe para o jogador
-class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = player_image
-        self.rect = self.image.get_rect(center=(x, y))
-        self.speed = 5
-
-    def update(self, keys):
-        if keys[K_UP]:
-            self.rect.y -= self.speed
-        if keys[K_DOWN]:
-            self.rect.y += self.speed
-        if keys[K_LEFT]:
-            self.rect.x -= self.speed
-        if keys[K_RIGHT]:
-            self.rect.x += self.speed
-
-        # Limitar o jogador à tela
-        self.rect.clamp_ip(screen.get_rect())
-
-# Classe para os inimigos
-class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = enemy_image
-        self.rect = self.image.get_rect(center=(x, y))
-        self.speed = 3
-
-    def update(self):
-        self.rect.y += self.speed
-        if self.rect.top > SCREEN_HEIGHT:
-            self.rect.bottom = 0
 
 # Executar o menu e o jogo
 menu()
