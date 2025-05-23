@@ -26,14 +26,13 @@ bg_layers = [
     )
     for filename in [
         "sky.png",
+        "graves.png",
         "back_trees.png",
         "tree.png",
         "wall.png",
-        "ground.png",
         "bones.png",
-        "graves.png",
         "crypt.png",
-        "Battleground4.png",  # Adicionado o chão
+        "ground.png",
     ]
 ]
 
@@ -112,7 +111,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.clamp_ip(screen.get_rect())
         return movement
 
-# Classe para o inimigo
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -121,14 +120,23 @@ class Enemy(pygame.sprite.Sprite):
         self.image = self.idle_animations[self.image_index]
         self.rect = self.image.get_rect(topleft=(x, y))
         self.animation_timer = 0
+        self.facing_left = True
 
-    def update(self, dt):
+    def update(self, dt, player_x):
         # Atualizar animação de idle
         self.animation_timer += dt
         if self.animation_timer > 150:  # Troca de frame a cada 150ms
             self.image_index = (self.image_index + 1) % len(self.idle_animations)
-            self.image = self.idle_animations[self.image_index]
             self.animation_timer = 0
+
+        # Virar o inimigo em direção ao player
+        if player_x < self.rect.centerx:
+            self.facing_left = True
+        else:
+            self.facing_left = False
+
+        img = self.idle_animations[self.image_index]
+        self.image = pygame.transform.flip(img, self.facing_left is False, False)
 
 # Função para renderizar texto com borda
 def render_with_border(text, font, text_color, border_color, border_width):
@@ -236,8 +244,13 @@ def main():
 
         # Atualizar
         keys = pygame.key.get_pressed()
-        player_movement = player.update(keys, dt)
-        enemy.update(dt)
+        # Apenas D e A movimentam o personagem lateralmente
+        filtered_keys = [False] * 323
+        filtered_keys[K_a] = keys[K_a]
+        filtered_keys[K_d] = keys[K_d]
+
+        player_movement = player.update(filtered_keys, dt)
+        enemy.update(dt, player.rect.centerx)
         background.update(player_movement)
 
         # Desenhar
