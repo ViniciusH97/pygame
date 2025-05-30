@@ -4,12 +4,16 @@ import random
 from pygame.locals import *
 
 # Inicialização do pygame
+import pygame
+import os
+import random
+import math
 pygame.init()
 
 # Configurações da tela e do mundo
 WINDOW_WIDTH = pygame.display.Info().current_w
 WINDOW_HEIGHT = pygame.display.Info().current_h
-WORLD_WIDTH = 3000  # Largura do mundo/fase
+WORLD_WIDTH = float('inf')  # Mundo infinito
 WORLD_HEIGHT = WINDOW_HEIGHT
 
 # Tamanhos dos personagens (você pode alterar estes valores)
@@ -223,17 +227,15 @@ archer_dead_animations = [
 # Classe para flecha
 class Arrow(pygame.sprite.Sprite):
     def __init__(self, x, y, direction, speed=8):
-        super().__init__()
-        # Carregar sprite da flecha
+        super().__init__()        # Carregar sprite da flecha
         self.original_image = pygame.image.load(os.path.join(IMAGES_DIR, "Skeleton_Archer", "Arrow.png")).convert_alpha()
-        self.original_image = pygame.transform.scale(self.original_image, (50, 20))
-        
-        # Rotacionar baseado na direção
+        self.original_image = pygame.transform.scale(self.original_image, (80, 30))  # Tamanho aumentado
+          # Rotacionar baseado na direção
         if direction == -1:  # Indo para esquerda
             self.image = pygame.transform.flip(self.original_image, True, False)
         else:  # Indo para direita
             self.image = self.original_image
-            
+        
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.speed = speed * direction
@@ -241,8 +243,8 @@ class Arrow(pygame.sprite.Sprite):
         
     def update(self):
         self.rect.x += self.speed
-        # Remove flecha se sair da tela
-        if self.rect.x < -100 or self.rect.x > WORLD_WIDTH + 100:
+        # Remove flecha se sair muito longe da tela
+        if self.rect.x < -500 or self.rect.x > 10000:
             self.kill()
 
 # Classe para o fundo com paralaxe
@@ -305,9 +307,8 @@ class Player(pygame.sprite.Sprite):
         
         # Velocidades
         self.walk_speed = 3
-        self.run_speed = 6
-        
-        # Hitbox para ataques
+        self.run_speed = 10
+          # Hitbox para ataques
         self.attack_hitbox = pygame.Rect(0, 0, 150, 100)
 
     def take_damage(self, damage):
@@ -321,13 +322,13 @@ class Player(pygame.sprite.Sprite):
                 self.death_animation_complete = False
             else:
                 self.state = "hurt"
-                self.hurt_timer = 500  # 500ms de animação de dano
+                self.hurt_timer = 400  # Tempo de invulnerabilidade após ser ferido
                 self.image_index = 0
 
     def attack(self):
         if self.state not in ["attack", "hurt", "dead"]:
             self.state = "attack"
-            self.attack_timer = 900  # Tempo maior para completar a animação
+            self.attack_timer = 600  # Tempo reduzido para ataque mais rápido
             self.image_index = 0
             return True
         return False
@@ -373,11 +374,9 @@ class Player(pygame.sprite.Sprite):
             self.defend(False)
             
         if keys[K_SPACE]:  # Espaço - atacar
-            self.attack()
-
-        # Detectar movimento apenas se não estiver atacando/ferido
+            self.attack()        # Detectar movimento apenas se não estiver atacando/ferido/defendendo
         movement = 0
-        if self.state not in ["attack", "hurt", "dead"]:
+        if self.state not in ["attack", "hurt", "dead"] and not self.is_defending:
             is_moving = keys[K_a] or keys[K_d] or keys[K_w] or keys[K_s]
             is_running = keys[K_LSHIFT] or keys[K_RSHIFT]
             
@@ -389,27 +388,25 @@ class Player(pygame.sprite.Sprite):
                 self.world_x -= current_speed
                 movement = -current_speed
                 self.facing_right = False
-                if not self.is_defending:
-                    self.state = "run" if is_running else "walk"
+                self.state = "run" if is_running else "walk"
             elif keys[K_d]:
                 self.world_x += current_speed
                 movement = current_speed
                 self.facing_right = True
-                if not self.is_defending:
-                    self.state = "run" if is_running else "walk"
+                self.state = "run" if is_running else "walk"
             
             # Movimento vertical
             if keys[K_w]:
                 self.world_y -= current_speed
-                if not self.is_defending and not (keys[K_a] or keys[K_d]):
+                if not (keys[K_a] or keys[K_d]):
                     self.state = "run" if is_running else "walk"
             elif keys[K_s]:
                 self.world_y += current_speed
-                if not self.is_defending and not (keys[K_a] or keys[K_d]):
+                if not (keys[K_a] or keys[K_d]):
                     self.state = "run" if is_running else "walk"
             
-            # Voltar para idle se não estiver se movendo e não defendendo
-            if not is_moving and not self.is_defending:
+            # Voltar para idle se não estiver se movendo
+            if not is_moving:
                 self.state = "idle"
                 
         # Limitar posição no mundo
@@ -424,16 +421,16 @@ class Player(pygame.sprite.Sprite):
         # Escolher animações baseadas no estado
         if self.state == "idle":
             current_animations = self.idle_animations
-            animation_speed = 150
+            animation_speed = 150        
         elif self.state == "walk":
             current_animations = self.walk_animations
-            animation_speed = 100        
+            animation_speed = 100
         elif self.state == "run":
             current_animations = self.run_animations
             animation_speed = 80
         elif self.state == "attack":
             current_animations = self.attack_animations
-            animation_speed = 180  # Velocidade ajustada para melhor visualização dos frames
+            animation_speed = 120  # Velocidade mais rápida para ataque
         elif self.state == "defend":
             current_animations = self.defend_animations
             animation_speed = 200
@@ -475,8 +472,8 @@ class Player(pygame.sprite.Sprite):
             
             self.animation_timer = 0
 
-# Classe para o inimigo esqueleto guerreiro
-class Enemy(pygame.sprite.Sprite):    
+# Classe para o esqueleto guerreiro
+class Skeleton(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         # Animações
@@ -509,7 +506,8 @@ class Enemy(pygame.sprite.Sprite):
         self.death_animation_complete = False
         self.has_seen_player = False
         self.persistent_chase = False
-          # Hitbox para ataques
+        
+        # Hitbox para ataques
         self.attack_hitbox = pygame.Rect(0, 0, 120, 80)
 
     def take_damage(self, damage):
@@ -524,14 +522,14 @@ class Enemy(pygame.sprite.Sprite):
                 return True  # Morreu
             else:
                 self.state = "hurt"
-                self.hurt_timer = 400
+                self.hurt_timer = 400                
                 self.image_index = 0
         return False
 
     def attack_player(self):
         if self.state not in ["attack", "hurt", "dead"]:
             self.state = "attack"
-            self.attack_timer = 800
+            self.attack_timer = 1500  # Aumentado de 800 para 1500 (ataque mais lento)
             self.image_index = 0
             return True
         return False
@@ -594,8 +592,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.world_y = max(0, min(self.world_y, WORLD_HEIGHT - self.rect.height))
             else:
                 self.state = "idle"
-        
-        # Atualizar animação
+          # Atualizar animação
         self.update_animation()
 
     def update_animation(self):
@@ -611,21 +608,23 @@ class Enemy(pygame.sprite.Sprite):
             animation_speed = 100
         elif self.state == "hurt":
             current_animations = self.hurt_animations
-            animation_speed = 150
+            animation_speed = 150        
         elif self.state == "dead":
-            # Usar idle como placeholder para morto
-            current_animations = self.idle_animations
+            current_animations = self.dead_animations
             animation_speed = 200
         else:
             current_animations = self.idle_animations
             animation_speed = 150
-          # Atualizar frame da animação
+          
+        # Atualizar frame da animação
         if self.animation_timer > animation_speed:
             if self.state == "dead":
                 if self.image_index < len(current_animations) - 1:
                     self.image_index += 1
                 else:
+                    # Ficar no último frame da animação de morte
                     self.image_index = len(current_animations) - 1
+                    self.death_animation_complete = True
             else:
                 self.image_index = (self.image_index + 1) % len(current_animations)
             
@@ -670,6 +669,7 @@ class Archer(pygame.sprite.Sprite):
         self.shoot_cooldown = 2000  # 2 segundos entre tiros
         self.hurt_timer = 0
         self.dead = False
+        self.death_animation_complete = False
         self.arrow_ready = False  # Para sincronização da flecha
         self.arrow_direction = 1  # Direção da flecha
 
@@ -681,6 +681,7 @@ class Archer(pygame.sprite.Sprite):
                 self.dead = True
                 self.state = "dead"
                 self.image_index = 0
+                self.death_animation_complete = False
                 return True
             else:
                 self.state = "hurt"
@@ -694,10 +695,12 @@ class Archer(pygame.sprite.Sprite):
             self.shoot_timer = self.shoot_cooldown
             self.image_index = 0
             return True
-        return False
-
+        return False    
     def update(self, dt, player_x=None, player_y=None):
         if self.dead:
+            # Continua atualizando a animação mesmo quando morto
+            self.animation_timer += dt
+            self.update_animation()
             return None
             
         self.animation_timer += dt
@@ -712,7 +715,7 @@ class Archer(pygame.sprite.Sprite):
         arrow = None
         
         # IA do arqueiro
-        if player_x is not None and player_y is not None and self.state not in ["shot", "hurt"]:
+        if player_x is not None and player_y is not None and self.state not in ["shot", "hurt", "dead"]:
             distance_x = abs(player_x - self.world_x)
             distance_y = abs(player_y - self.world_y)
             total_distance = (distance_x**2 + distance_y**2)**0.5
@@ -962,19 +965,23 @@ def main():
     paralax_speeds = [0.1, 0.12, 0.15, 0.2, 0.25, 0.5, 0.5, 0.5]  # Árvore, chão e ossos sem paralaxe
     background = Background(bg_layers, paralax_speeds)    
     player = Player(50, WINDOW_HEIGHT - 400)
-    enemy = Enemy(300, WINDOW_HEIGHT - 400)
-    archer = Archer(600, WINDOW_HEIGHT - 400)
+    
+    # Sistema de spawn de inimigos
+    spawn_distance = 0  # Distância percorrida pelo player
+    last_spawn_distance = 0
+    spawn_interval = 300  # Distância mínima entre spawns
+    spawn_timer = 0
+    min_spawn_distance = 400  # Distância mínima do player para spawn
+    max_spawn_distance = 800  # Distância máxima do player para spawn
     
     # Grupos de sprites
     arrows = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
-    enemies.add(enemy)
     archers = pygame.sprite.Group()
-    archers.add(archer)
+    dead_entities = pygame.sprite.Group()  # Para manter corpos no cenário
 
     clock = pygame.time.Clock()
-    running = True
-    
+    running = True    
     while running:
         dt = clock.tick(60)
         
@@ -990,6 +997,32 @@ def main():
         # Atualizar player
         player_movement = player.update(keys, dt, mouse_buttons)
         
+        # Calcular distância percorrida pelo player
+        spawn_distance = max(spawn_distance, player.world_x)
+        
+        # Sistema de spawn de inimigos baseado na distância
+        spawn_timer += dt
+        if spawn_distance - last_spawn_distance > spawn_interval and spawn_timer > 2000:  # 2 segundos mínimo entre spawns
+            # Calcular quantos inimigos spawnar baseado na distância
+            distance_factor = max(1, int(spawn_distance / 1000))  # 1 inimigo a cada 1000 pixels
+            num_spawns = min(3, distance_factor)  # Máximo 3 inimigos por vez
+            
+            for _ in range(num_spawns):
+                # Spawnar à frente do player (fora da tela)
+                spawn_x = player.world_x + random.randint(min_spawn_distance, max_spawn_distance)
+                spawn_y = random.randint(WINDOW_HEIGHT - 500, WINDOW_HEIGHT - 200)
+                
+                # 60% chance de skeleto guerreiro, 40% chance de arqueiro                
+                if random.random() < 0.6:
+                    new_skeleton = Skeleton(spawn_x, spawn_y)
+                    enemies.add(new_skeleton)
+                else:
+                    new_archer = Archer(spawn_x, spawn_y)
+                    archers.add(new_archer)
+            
+            last_spawn_distance = spawn_distance
+            spawn_timer = 0
+        
         # Verificar se player morreu e completou a animação de morte
         if player.dead and player.death_animation_complete:
             if death_screen() == "menu":
@@ -999,12 +1032,14 @@ def main():
             continue
         
         # Atualizar inimigos
-        enemy.update(dt, player.world_x, player.world_y)
+        for enemy in enemies.copy():
+            enemy.update(dt, player.world_x, player.world_y)
         
         # Atualizar arqueiros
-        new_arrow = archer.update(dt, player.world_x, player.world_y)
-        if new_arrow:
-            arrows.add(new_arrow)
+        for archer in archers.copy():
+            new_arrow = archer.update(dt, player.world_x, player.world_y)
+            if new_arrow:
+                arrows.add(new_arrow)
         
         # Atualizar flechas
         arrows.update()
@@ -1013,25 +1048,25 @@ def main():
         player_hitbox = player.get_attack_hitbox()
         if player_hitbox:
             # Atacar esqueletos guerreiros
-            for enemy_sprite in enemies.copy():
-                if player_hitbox.colliderect(pygame.Rect(enemy_sprite.world_x, enemy_sprite.world_y, 
+            for enemy_sprite in enemies:
+                if not enemy_sprite.dead and player_hitbox.colliderect(pygame.Rect(enemy_sprite.world_x, enemy_sprite.world_y, 
                                                        enemy_sprite.rect.width, enemy_sprite.rect.height)):
-                    if enemy_sprite.take_damage(player.attack_damage):
-                        enemies.remove(enemy_sprite)
+                    enemy_sprite.take_damage(player.attack_damage)
             
             # Atacar arqueiros
-            for archer_sprite in archers.copy():
-                if player_hitbox.colliderect(pygame.Rect(archer_sprite.world_x, archer_sprite.world_y, 
+            for archer_sprite in archers:
+                if not archer_sprite.dead and player_hitbox.colliderect(pygame.Rect(archer_sprite.world_x, archer_sprite.world_y, 
                                                         archer_sprite.rect.width, archer_sprite.rect.height)):
-                    if archer_sprite.take_damage(player.attack_damage):
-                        archers.remove(archer_sprite)
+                    archer_sprite.take_damage(player.attack_damage)
         
         # Verificar colisões de ataque dos inimigos
-        enemy_hitbox = enemy.get_attack_hitbox()
-        if enemy_hitbox:
-            player_rect = pygame.Rect(player.world_x, player.world_y, player.rect.width, player.rect.height)
-            if enemy_hitbox.colliderect(player_rect):
-                player.take_damage(enemy.attack_damage)
+        for enemy in enemies:
+            if not enemy.dead:
+                enemy_hitbox = enemy.get_attack_hitbox()
+                if enemy_hitbox:
+                    player_rect = pygame.Rect(player.world_x, player.world_y, player.rect.width, player.rect.height)
+                    if enemy_hitbox.colliderect(player_rect):
+                        player.take_damage(enemy.attack_damage)
         
         # Verificar colisões das flechas com o player
         for arrow in arrows.copy():
@@ -1053,15 +1088,21 @@ def main():
         # Posições na tela
         player_screen_x = player.world_x - camera_x
         player_screen_y = player.world_y - camera_y
-        enemy_screen_x = enemy.world_x - camera_x
-        enemy_screen_y = enemy.world_y - camera_y
         
         # Desenhar sprites
         screen.blit(player.image, (player_screen_x, player_screen_y))
-        if not enemy.dead:
+        
+        # Desenhar inimigos (vivos e mortos)
+        for enemy in enemies:
+            enemy_screen_x = enemy.world_x - camera_x
+            enemy_screen_y = enemy.world_y - camera_y
             screen.blit(enemy.image, (enemy_screen_x, enemy_screen_y))
-        if not archer.dead:
-            screen.blit(archer.image, (archer.world_x - camera_x, archer.world_y - camera_y))
+        
+        # Desenhar arqueiros (vivos e mortos)
+        for archer in archers:
+            archer_screen_x = archer.world_x - camera_x
+            archer_screen_y = archer.world_y - camera_y
+            screen.blit(archer.image, (archer_screen_x, archer_screen_y))
         
         # Desenhar flechas
         for arrow in arrows:
@@ -1079,6 +1120,16 @@ def main():
         font = pygame.font.SysFont("Arial", 16)
         health_text = font.render(f"HP: {player.health}/{player.max_health}", True, (255, 255, 255))
         screen.blit(health_text, (health_x, health_y - 20))
+        
+        # Mostrar distância percorrida
+        distance_text = font.render(f"Distance: {int(spawn_distance)}m", True, (255, 255, 255))
+        screen.blit(distance_text, (health_x, health_y - 40))
+        
+        # Mostrar número de inimigos
+        total_enemies = len(enemies) + len(archers)
+        alive_enemies = len([e for e in enemies if not e.dead]) + len([a for a in archers if not a.dead])
+        enemies_text = font.render(f"Enemies: {alive_enemies}/{total_enemies}", True, (255, 255, 255))
+        screen.blit(enemies_text, (health_x, health_y - 60))
         
         # Instruções de controle (canto superior esquerdo)
         instructions = [
