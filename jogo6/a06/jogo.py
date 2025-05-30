@@ -3,28 +3,21 @@ import pygame
 import random
 from pygame.locals import *
 
-# Inicialização do pygame
-import pygame
-import os
-import random
-import math
 pygame.init()
 
-# Configurações da tela e do mundo
 WINDOW_WIDTH = pygame.display.Info().current_w
 WINDOW_HEIGHT = pygame.display.Info().current_h
 WORLD_WIDTH = float('inf')  # Mundo infinito
 WORLD_HEIGHT = WINDOW_HEIGHT
 
-# Tamanhos dos personagens (você pode alterar estes valores)
-PLAYER_SIZE = (500, 500)  # Tamanho do jogador (reduzido de 150x150)
-ENEMY_SIZE = (500, 500)     # Tamanho dos esqueletos (reduzido de 120x120)
-ARCHER_SIZE = (500, 500)    # Tamanho dos arqueiros (reduzido de 120x120)
+PLAYER_SIZE = (500, 500)  
+ENEMY_SIZE = (500, 500)     
+ARCHER_SIZE = (500, 500)    
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN)
 pygame.display.set_caption("Dark Souls 2D")
 
-# Diretórios das imagens
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 IMAGES_DIR = os.path.join(BASE_DIR, "imagens")
 BG_DIR = os.path.join(IMAGES_DIR, "Battleground4", "Pale")
@@ -39,41 +32,41 @@ SKELETON_IDLE_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "idle")
 SKELETON_WALK = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "walk")
 SKELETON_ATTACK_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "attack")
 SKELETON_HURT_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "hurt")
+SKELETON_DEAD_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "dead")
 ARCHER_IDLE_DIR = os.path.join(IMAGES_DIR, "Skeleton_Archer", "idle")
 ARCHER_WALK_DIR = os.path.join(IMAGES_DIR, "Skeleton_Archer", "walk")
 ARCHER_ATTACK_DIR = os.path.join(IMAGES_DIR, "Skeleton_Archer", "attack")
 ARCHER_SHOT_DIR = os.path.join(IMAGES_DIR, "Skeleton_Archer", "shot1")
 ARCHER_HURT_DIR = os.path.join(IMAGES_DIR, "Skeleton_Archer", "hurt")
 ARCHER_DEAD_DIR = os.path.join(IMAGES_DIR, "Skeleton_Archer", "dead")
+ARCHER_ARROW = os.path.join(IMAGES_DIR, "Skeleton_Archer")  # Removido "arrow" subpasta
 
-# Carregar camadas do fundo e redimensionar para caber na janela
+
 bg_layers = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(BG_DIR, filename)).convert_alpha(),
         (WINDOW_WIDTH, WINDOW_HEIGHT)
     )
     for filename in [
-        "sky.png",        # index 0 (efeito parallax)
-        "back_trees.png", # index 1 (efeito parallax)
-        "graves.png",     # index 2 (efeito parallax)
-        "crypt.png",      # index 3 (efeito parallax)
-        "wall.png",       # index 4 (efeito parallax)
-        "ground.png",     # index 5 (move com o player)
-        "tree.png",       # index 6 (move com o player)
-        "bones.png"       # index 7 (move com o player)
+        "sky.png",        
+        "back_trees.png", 
+        "graves.png",     
+        "crypt.png",      
+        "wall.png",       
+        "ground.png",     
+        "tree.png",       
+        "bones.png"       
     ]
 ]
 
-# Carregar animações do jogador (idle) e redimensionar
 player_idle_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(PLAYER_IDLE_DIR, f"row-1-column-{i}.png")).convert_alpha(),
         PLAYER_SIZE
     )
-    for i in range(1, 5) # Ajustado para 4 frames de idle
+    for i in range(1, 5) 
 ]
 
-# Carregar animações do jogador (walk) e redimensionar
 player_walk_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(PLAYER_WALK, f"row-1-column-{i}.png")).convert_alpha(),
@@ -90,16 +83,15 @@ player_run_animations = [
     for i in range(1, 8)
 ]
 
-# Carregar animações do jogador (attack) e redimensionar
+
 player_attack_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(PLAYER_ATTACK_DIR, f"row-1-column-{i}.png")).convert_alpha(),
         PLAYER_SIZE
     )
-    for i in range(1, 6) # Ajustado para 5 frames de ataque
+    for i in range(1, 6)
 ]
 
-# Carregar animações do jogador (defend) e redimensionar
 player_defend_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(PLAYER_DEFEND_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -108,7 +100,6 @@ player_defend_animations = [
     for i in range(1, 6)
 ]
 
-# Carregar animações do jogador (hurt) e redimensionar
 player_hurt_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(PLAYER_HURT_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -117,7 +108,6 @@ player_hurt_animations = [
     for i in range(1, 3)
 ]
 
-# Carregar animações do jogador (dead) e redimensionar
 player_dead_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(PLAYER_DEAD_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -142,7 +132,6 @@ enemy_walk_animations = [
     for i in range(1, 8)
 ]
 
-# Carregar animações do esqueleto guerreiro (attack) e redimensionar
 enemy_attack_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(SKELETON_ATTACK_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -151,7 +140,6 @@ enemy_attack_animations = [
     for i in range(1, 6)
 ]
 
-# Carregar animações do esqueleto guerreiro (hurt) e redimensionar
 enemy_hurt_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(SKELETON_HURT_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -160,8 +148,6 @@ enemy_hurt_animations = [
     for i in range(1, 3)
 ]
 
-# Carregar animações do esqueleto guerreiro (dead) e redimensionar
-SKELETON_DEAD_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "dead")
 enemy_dead_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(SKELETON_DEAD_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -170,7 +156,6 @@ enemy_dead_animations = [
     for i in range(1, 5)
 ]
 
-# Carregar animações do arqueiro (idle) e redimensionar
 archer_idle_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(ARCHER_IDLE_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -179,7 +164,6 @@ archer_idle_animations = [
     for i in range(1, 8)
 ]
 
-# Carregar animações do arqueiro (walk) e redimensionar
 archer_walk_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(ARCHER_WALK_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -188,7 +172,6 @@ archer_walk_animations = [
     for i in range(1, 9)
 ]
 
-# Carregar animações do arqueiro (attack) e redimensionar
 archer_attack_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(ARCHER_ATTACK_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -197,7 +180,6 @@ archer_attack_animations = [
     for i in range(1, 6)
 ]
 
-# Carregar animações do arqueiro (shot) e redimensionar
 archer_shot_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(ARCHER_SHOT_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -206,7 +188,6 @@ archer_shot_animations = [
     for i in range(1, 16)
 ]
 
-# Carregar animações do arqueiro (hurt) e redimensionar
 archer_hurt_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(ARCHER_HURT_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -215,7 +196,6 @@ archer_hurt_animations = [
     for i in range(1, 3)
 ]
 
-# Carregar animações do arqueiro (dead) e redimensionar
 archer_dead_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(ARCHER_DEAD_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -224,14 +204,13 @@ archer_dead_animations = [
     for i in range(1, 6)
 ]
 
-# Classe para flecha
 class Arrow(pygame.sprite.Sprite):
     def __init__(self, x, y, direction, speed=8):
-        super().__init__()        # Carregar sprite da flecha
-        self.original_image = pygame.image.load(os.path.join(IMAGES_DIR, "Skeleton_Archer", "Arrow.png")).convert_alpha()
-        self.original_image = pygame.transform.scale(self.original_image, (80, 30))  # Tamanho aumentado
-          # Rotacionar baseado na direção
-        if direction == -1:  # Indo para esquerda
+        super().__init__()
+        arrow_path = os.path.join(ARCHER_ARROW, "Arrow.png")
+        self.original_image = pygame.image.load(arrow_path).convert_alpha()        
+        self.original_image = pygame.transform.scale(self.original_image, (200, 100))  # Tamanho aumentado
+        if direction == -1:  
             self.image = pygame.transform.flip(self.original_image, True, False)
         else:  # Indo para direita
             self.image = self.original_image
@@ -243,11 +222,10 @@ class Arrow(pygame.sprite.Sprite):
         
     def update(self):
         self.rect.x += self.speed
-        # Remove flecha se sair muito longe da tela
+        
         if self.rect.x < -500 or self.rect.x > 10000:
             self.kill()
 
-# Classe para o fundo com paralaxe
 class Background:
     def __init__(self, layers, speeds, direction="horizontal"):
         self.layers = layers
@@ -294,21 +272,19 @@ class Player(pygame.sprite.Sprite):
         self.world_y = y
         self.facing_right = True
         
-        # Atributos de combate
         self.max_health = 100
         self.health = self.max_health
         self.attack_damage = 30
-        self.attack_range = 100
+        self.attack_range = 20
         self.is_defending = False
         self.hurt_timer = 0
         self.attack_timer = 0
         self.dead = False
         self.death_animation_complete = False
         
-        # Velocidades
         self.walk_speed = 3
-        self.run_speed = 10
-          # Hitbox para ataques
+        self.run_speed = 15
+        
         self.attack_hitbox = pygame.Rect(0, 0, 150, 100)
 
     def take_damage(self, damage):
@@ -322,13 +298,13 @@ class Player(pygame.sprite.Sprite):
                 self.death_animation_complete = False
             else:
                 self.state = "hurt"
-                self.hurt_timer = 400  # Tempo de invulnerabilidade após ser ferido
+                self.hurt_timer = 400
                 self.image_index = 0
 
     def attack(self):
         if self.state not in ["attack", "hurt", "dead"]:
             self.state = "attack"
-            self.attack_timer = 600  # Tempo reduzido para ataque mais rápido
+            self.attack_timer = 600  
             self.image_index = 0
             return True
         return False
@@ -341,7 +317,7 @@ class Player(pygame.sprite.Sprite):
                 self.image_index = 0
 
     def get_attack_hitbox(self):
-        if self.state == "attack" and self.image_index >= 2:  # Frame do meio da animação
+        if self.state == "attack" and self.image_index >= 2:  
             if self.facing_right:
                 self.attack_hitbox.centerx = self.world_x + 100
             else:
@@ -356,7 +332,6 @@ class Player(pygame.sprite.Sprite):
             
         self.animation_timer += dt
         
-        # Reduzir timers
         if self.hurt_timer > 0:
             self.hurt_timer -= dt
             if self.hurt_timer <= 0:
@@ -367,7 +342,6 @@ class Player(pygame.sprite.Sprite):
             if self.attack_timer <= 0 and self.state == "attack":
                 self.state = "idle"
 
-        # Controles de combate
         if mouse_buttons[0]:  # Botão esquerdo - defender
             self.defend(True)
         else:
@@ -380,10 +354,8 @@ class Player(pygame.sprite.Sprite):
             is_moving = keys[K_a] or keys[K_d] or keys[K_w] or keys[K_s]
             is_running = keys[K_LSHIFT] or keys[K_RSHIFT]
             
-            # Definir velocidade
             current_speed = self.run_speed if is_running else self.walk_speed
             
-            # Movimento horizontal
             if keys[K_a] and self.world_x > 0:
                 self.world_x -= current_speed
                 movement = -current_speed
@@ -395,7 +367,6 @@ class Player(pygame.sprite.Sprite):
                 self.facing_right = True
                 self.state = "run" if is_running else "walk"
             
-            # Movimento vertical
             if keys[K_w]:
                 self.world_y -= current_speed
                 if not (keys[K_a] or keys[K_d]):
@@ -439,7 +410,7 @@ class Player(pygame.sprite.Sprite):
             animation_speed = 150
         elif self.state == "dead":
             current_animations = self.dead_animations
-            animation_speed = 200  # Animação de morte mais lenta
+            animation_speed = 200  
         else:
             current_animations = self.idle_animations
             animation_speed = 150
@@ -529,7 +500,7 @@ class Skeleton(pygame.sprite.Sprite):
     def attack_player(self):
         if self.state not in ["attack", "hurt", "dead"]:
             self.state = "attack"
-            self.attack_timer = 1500  # Aumentado de 800 para 1500 (ataque mais lento)
+            self.attack_timer = 800
             self.image_index = 0
             return True
         return False
@@ -545,23 +516,26 @@ class Skeleton(pygame.sprite.Sprite):
         return None
 
     def update(self, dt, player_x=None, player_y=None):
-        if self.dead:
-            return
-            
+    # Sempre atualizar o timer de animação
         self.animation_timer += dt
+    
+    # Se estiver morto, só atualizar animação e retornar
+        if self.dead:
+            self.update_animation()
+            return
         
-        # Reduzir timers
+    # Reduzir timers
         if self.hurt_timer > 0:
             self.hurt_timer -= dt
             if self.hurt_timer <= 0:
                 self.state = "idle"
-                
+            
         if self.attack_timer > 0:
             self.attack_timer -= dt
             if self.attack_timer <= 0:
                 self.state = "idle"
-        
-        # IA para seguir e atacar o player
+    
+    # IA para seguir e atacar o player
         if player_x is not None and player_y is not None and self.state not in ["attack", "hurt"]:
             distance_x = abs(player_x - self.world_x)
             distance_y = abs(player_y - self.world_y)
@@ -592,7 +566,7 @@ class Skeleton(pygame.sprite.Sprite):
                 self.world_y = max(0, min(self.world_y, WORLD_HEIGHT - self.rect.height))
             else:
                 self.state = "idle"
-          # Atualizar animação
+        
         self.update_animation()
 
     def update_animation(self):
@@ -611,7 +585,7 @@ class Skeleton(pygame.sprite.Sprite):
             animation_speed = 150        
         elif self.state == "dead":
             current_animations = self.dead_animations
-            animation_speed = 200
+            animation_speed = 300
         else:
             current_animations = self.idle_animations
             animation_speed = 150
@@ -698,7 +672,6 @@ class Archer(pygame.sprite.Sprite):
         return False    
     def update(self, dt, player_x=None, player_y=None):
         if self.dead:
-            # Continua atualizando a animação mesmo quando morto
             self.animation_timer += dt
             self.update_animation()
             return None
@@ -706,7 +679,6 @@ class Archer(pygame.sprite.Sprite):
         self.animation_timer += dt
         self.shoot_timer -= dt
         
-        # Reduzir timer de dano
         if self.hurt_timer > 0:
             self.hurt_timer -= dt
             if self.hurt_timer <= 0:
@@ -714,7 +686,6 @@ class Archer(pygame.sprite.Sprite):
         
         arrow = None
         
-        # IA do arqueiro
         if player_x is not None and player_y is not None and self.state not in ["shot", "hurt", "dead"]:
             distance_x = abs(player_x - self.world_x)
             distance_y = abs(player_y - self.world_y)
@@ -772,7 +743,6 @@ class Archer(pygame.sprite.Sprite):
             else:
                 self.state = "idle"
         
-        # Verificar se deve disparar flecha no frame correto da animação
         if (self.state == "shot" and self.arrow_ready and 
             self.image_index >= len(self.shot_animations) - 3):  # Alguns frames antes do final
             # Calcular posição da flecha baseada na posição e direção do arqueiro
@@ -796,7 +766,7 @@ class Archer(pygame.sprite.Sprite):
             animation_speed = 120
         elif self.state == "attack":
             current_animations = self.attack_animations
-            animation_speed = 100
+            animation_speed = 120
         elif self.state == "shot":
             current_animations = self.shot_animations
             animation_speed = 120  # Animação de tiro mais rápida
@@ -877,7 +847,7 @@ def menu():
         screen.fill((0, 0, 0))
         menu_background.draw(screen)
         title_text = title_font.render("Dark Souls 2D", True, (255, 255, 255))
-        screen.blit(title_text, (WINDOW_WIDTH // 2 - title_text.get_width() // 2, 100))
+        screen.blit(title_text, (WINDOW_WIDTH // 2 - title_text.get_width() // 2, 200))
         for i, option in enumerate(options):
             color = (255, 255, 255) if i == selected_option else (150, 150, 150)
             option_text = option_font.render(option, True, color)
@@ -885,11 +855,9 @@ def menu():
         pygame.display.flip()
 
 def draw_health_bar(screen, x, y, current_health, max_health, width=200, height=20):
-    # Borda preta
     border_rect = pygame.Rect(x - 2, y - 2, width + 4, height + 4)
     pygame.draw.rect(screen, (0, 0, 0), border_rect)
     
-    # Fundo vermelho (vida perdida)
     bg_rect = pygame.Rect(x, y, width, height)
     pygame.draw.rect(screen, (139, 0, 0), bg_rect)
     
@@ -1020,7 +988,6 @@ def main():
             last_spawn_distance = spawn_distance
             spawn_timer = 0
         
-        # Verificar se player morreu e completou a animação de morte
         if player.dead and player.death_animation_complete:
             if death_screen() == "menu":
                 return "menu"  # Voltar para o menu
@@ -1089,46 +1056,42 @@ def main():
         # Desenhar sprites
         screen.blit(player.image, (player_screen_x, player_screen_y))
         
-        # Desenhar inimigos (vivos e mortos)
         for enemy in enemies:
             enemy_screen_x = enemy.world_x - camera_x
             enemy_screen_y = enemy.world_y - camera_y
             screen.blit(enemy.image, (enemy_screen_x, enemy_screen_y))
         
-        # Desenhar arqueiros (vivos e mortos)
         for archer in archers:
             archer_screen_x = archer.world_x - camera_x
             archer_screen_y = archer.world_y - camera_y
             screen.blit(archer.image, (archer_screen_x, archer_screen_y))
         
-        # Desenhar flechas
         for arrow in arrows:
             arrow_screen_x = arrow.rect.x - camera_x
             arrow_screen_y = arrow.rect.y
             screen.blit(arrow.image, (arrow_screen_x, arrow_screen_y))
         
-        # Desenhar UI
-        # Barra de vida do player (canto inferior direito)
+    
         health_x = WINDOW_WIDTH - 220
         health_y = WINDOW_HEIGHT - 40
         draw_health_bar(screen, health_x, health_y, player.health, player.max_health)
         
-        # Texto da vida
+    
         font = pygame.font.SysFont("Arial", 16)
         health_text = font.render(f"HP: {player.health}/{player.max_health}", True, (255, 255, 255))
         screen.blit(health_text, (health_x, health_y - 20))
         
-        # Mostrar distância percorrida
+    
         distance_text = font.render(f"Distance: {int(spawn_distance)}m", True, (255, 255, 255))
         screen.blit(distance_text, (health_x, health_y - 40))
         
-        # Mostrar número de inimigos
+    
         total_enemies = len(enemies) + len(archers)
         alive_enemies = len([e for e in enemies if not e.dead]) + len([a for a in archers if not a.dead])
         enemies_text = font.render(f"Enemies: {alive_enemies}/{total_enemies}", True, (255, 255, 255))
         screen.blit(enemies_text, (health_x, health_y - 60))
         
-        # Instruções de controle (canto superior esquerdo)
+    
         instructions = [
             "WASD - Mover",
             "SHIFT - Correr", 
