@@ -851,7 +851,7 @@ def menu():
             menu_layers.append(img)
     menu_background = Background(menu_layers, menu_speeds)
     title_font = pygame.font.SysFont("Times New Roman", 72, bold=True)
-    option_font = pygame.font.SysFont("Arial", 36)
+    option_font = pygame.font.SysFont("Arial", 50)
     selected_option = 0
     options = ["New Game", "Exit"]
 
@@ -884,7 +884,6 @@ def menu():
             screen.blit(option_text, (WINDOW_WIDTH // 2 - option_text.get_width() // 2, 300 + i * 50))
         pygame.display.flip()
 
-# Função para desenhar a barra de vida
 def draw_health_bar(screen, x, y, current_health, max_health, width=200, height=20):
     # Borda preta
     border_rect = pygame.Rect(x - 2, y - 2, width + 4, height + 4)
@@ -894,7 +893,6 @@ def draw_health_bar(screen, x, y, current_health, max_health, width=200, height=
     bg_rect = pygame.Rect(x, y, width, height)
     pygame.draw.rect(screen, (139, 0, 0), bg_rect)
     
-    # Vida atual (verde)
     if current_health > 0:
         health_width = int((current_health / max_health) * width)
         health_rect = pygame.Rect(x, y, health_width, height)
@@ -919,12 +917,11 @@ def death_screen():
                 exit()
             if event.type == KEYDOWN:
                 if event.key == K_r and show_restart:
-                    return "menu"  # Voltar para o menu
+                    return "menu"  
                 if event.key == K_ESCAPE:
                     pygame.quit()
                     exit()
         
-        # Efeito de fade gradual
         if fade_alpha < 255:
             fade_alpha += 3
         elif text_alpha < 255:
