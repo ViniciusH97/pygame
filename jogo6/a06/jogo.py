@@ -7,7 +7,7 @@ pygame.init()
 
 WINDOW_WIDTH = pygame.display.Info().current_w
 WINDOW_HEIGHT = pygame.display.Info().current_h
-WORLD_WIDTH = float('inf')  # Mundo infinito
+WORLD_WIDTH = float('inf')  
 WORLD_HEIGHT = WINDOW_HEIGHT
 
 PLAYER_SIZE = (500, 500)  
@@ -39,7 +39,7 @@ ARCHER_ATTACK_DIR = os.path.join(IMAGES_DIR, "Skeleton_Archer", "attack")
 ARCHER_SHOT_DIR = os.path.join(IMAGES_DIR, "Skeleton_Archer", "shot1")
 ARCHER_HURT_DIR = os.path.join(IMAGES_DIR, "Skeleton_Archer", "hurt")
 ARCHER_DEAD_DIR = os.path.join(IMAGES_DIR, "Skeleton_Archer", "dead")
-ARCHER_ARROW = os.path.join(IMAGES_DIR, "Skeleton_Archer")  # Removido "arrow" subpasta
+ARCHER_ARROW = os.path.join(IMAGES_DIR, "Skeleton_Archer")  
 
 
 bg_layers = [
@@ -249,11 +249,11 @@ class Background:
                 screen.blit(layer, (x, 0))
                 x += layer_width
 
-# Classe para o jogador
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        # Animações
+    
         self.idle_animations = player_idle_animations
         self.walk_animations = player_walk_animations
         self.run_animations = player_run_animations
@@ -342,13 +342,13 @@ class Player(pygame.sprite.Sprite):
             if self.attack_timer <= 0 and self.state == "attack":
                 self.state = "idle"
 
-        if mouse_buttons[0]:  # Botão esquerdo - defender
+        if mouse_buttons[0]:  
             self.defend(True)
         else:
             self.defend(False)
             
-        if keys[K_SPACE]:  # Espaço - atacar
-            self.attack()        # Detectar movimento apenas se não estiver atacando/ferido/defendendo
+        if keys[K_SPACE]:  
+            self.attack()        
         movement = 0
         if self.state not in ["attack", "hurt", "dead"] and not self.is_defending:
             is_moving = keys[K_a] or keys[K_d] or keys[K_w] or keys[K_s]
@@ -376,11 +376,9 @@ class Player(pygame.sprite.Sprite):
                 if not (keys[K_a] or keys[K_d]):
                     self.state = "run" if is_running else "walk"
             
-            # Voltar para idle se não estiver se movendo
             if not is_moving:
                 self.state = "idle"
                 
-        # Limitar posição no mundo
         self.world_x = max(0, min(self.world_x, WORLD_WIDTH - self.rect.width))
         self.world_y = max(0, min(self.world_y, WORLD_HEIGHT - self.rect.height))
 
@@ -389,7 +387,6 @@ class Player(pygame.sprite.Sprite):
         return movement
 
     def update_animation(self):
-        # Escolher animações baseadas no estado
         if self.state == "idle":
             current_animations = self.idle_animations
             animation_speed = 150        
@@ -401,7 +398,7 @@ class Player(pygame.sprite.Sprite):
             animation_speed = 80
         elif self.state == "attack":
             current_animations = self.attack_animations
-            animation_speed = 120  # Velocidade mais rápida para ataque
+            animation_speed = 120  
         elif self.state == "defend":
             current_animations = self.defend_animations
             animation_speed = 200
@@ -415,27 +412,23 @@ class Player(pygame.sprite.Sprite):
             current_animations = self.idle_animations
             animation_speed = 150
         
-        # Atualizar frame da animação
         if self.animation_timer > animation_speed:
             if self.state == "dead":
                 if self.image_index < len(current_animations) - 1:
                     self.image_index += 1
                 else:
-                    # Ficar no último frame da animação de morte
                     self.image_index = len(current_animations) - 1
                     self.death_animation_complete = True
             elif self.state == "attack":
                 if self.image_index < len(current_animations) - 1:
                     self.image_index += 1
                 else:
-                    # Completou a animação de ataque, voltar para idle
                     self.state = "idle"
                     self.image_index = 0
                     self.attack_timer = 0
             else:
                 self.image_index = (self.image_index + 1) % len(current_animations)
             
-            # Aplicar sprite baseado na direção
             sprite = current_animations[self.image_index]
             if not self.facing_right:
                 sprite = pygame.transform.flip(sprite, True, False)
@@ -443,11 +436,10 @@ class Player(pygame.sprite.Sprite):
             
             self.animation_timer = 0
 
-# Classe para o esqueleto guerreiro
 class Skeleton(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        # Animações
+
         self.idle_animations = enemy_idle_animations
         self.walk_animations = enemy_walk_animations
         self.attack_animations = enemy_attack_animations
@@ -455,7 +447,7 @@ class Skeleton(pygame.sprite.Sprite):
         self.dead_animations = enemy_dead_animations
         
         # Estados
-        self.state = "idle"  # idle, walk, attack, hurt, dead
+        self.state = "idle"  
         self.image_index = 0
         self.image = self.idle_animations[self.image_index]
         self.rect = self.image.get_rect(topleft=(x, y))
@@ -516,15 +508,12 @@ class Skeleton(pygame.sprite.Sprite):
         return None
 
     def update(self, dt, player_x=None, player_y=None):
-    # Sempre atualizar o timer de animação
         self.animation_timer += dt
     
-    # Se estiver morto, só atualizar animação e retornar
         if self.dead:
             self.update_animation()
             return
         
-    # Reduzir timers
         if self.hurt_timer > 0:
             self.hurt_timer -= dt
             if self.hurt_timer <= 0:
@@ -561,7 +550,6 @@ class Skeleton(pygame.sprite.Sprite):
                 elif player_y < self.world_y:
                     self.world_y -= self.speed
                 
-                # Manter dentro dos limites do mundo
                 self.world_x = max(0, min(self.world_x, WORLD_WIDTH - self.rect.width))
                 self.world_y = max(0, min(self.world_y, WORLD_HEIGHT - self.rect.height))
             else:
@@ -812,7 +800,7 @@ def menu():
     menu_layers = []
     menu_speeds = [0.2, 0.4, 0.7, 1.0, 1.5, 2.0, 2.5]
     MENU_BG_DIR = os.path.join(IMAGES_DIR, "Battleground1", "Pale")
-    menu_layer_files = ["sky.png", "ruins_bg.png", "hills&trees.png", "stones&grass.png", "ruins.png", "ruins2.png", "statue.png"]
+    menu_layer_files = ["sky.png", "ruins_bg.png", "hills&trees.png", "stones&grass.png", "statue.png", "ruins.png", "ruins2.png"]
     for filename in menu_layer_files:
         path = os.path.join(MENU_BG_DIR, filename)
         if os.path.exists(path):
@@ -927,7 +915,7 @@ def death_screen():
 # Função principal do jogo
 def main():
     # Parallax apenas nas camadas de fundo (0 a 4), os elementos visuais próximos ao jogador não devem ter paralaxe
-    paralax_speeds = [0.1, 0.12, 0.15, 0.2, 0.25, 0.5, 0.5, 0.5]  # Árvore, chão e ossos sem paralaxe
+    paralax_speeds = [0.1, 0.12, 0.15, 0.2, 0.25, 0.5, 0.5, 0.5]  
     background = Background(bg_layers, paralax_speeds)    
     player = Player(50, WINDOW_HEIGHT - 400)
     
