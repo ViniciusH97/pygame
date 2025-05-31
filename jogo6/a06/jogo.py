@@ -24,6 +24,7 @@ BG_DIR = os.path.join(IMAGES_DIR, "Battleground4", "Pale")
 PLAYER_IDLE_DIR = os.path.join(IMAGES_DIR, "Knight_1", "idle")
 PLAYER_WALK = os.path.join(IMAGES_DIR, "Knight_1", "walk")
 PLAYER_ATTACK_DIR = os.path.join(IMAGES_DIR, "Knight_1", "attack")
+PLAYER_ATTACK2_DIR = os.path.join(IMAGES_DIR, "Knight_1", "attack2")
 PLAYER_DEFEND_DIR = os.path.join(IMAGES_DIR, "Knight_1", "defend")
 PLAYER_HURT_DIR = os.path.join(IMAGES_DIR, "Knight_1", "hurt")
 PLAYER_RUN_DIR = os.path.join(IMAGES_DIR, "Knight_1", "run")
@@ -31,6 +32,7 @@ PLAYER_DEAD_DIR = os.path.join(IMAGES_DIR, "Knight_1", "dead")
 SKELETON_IDLE_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "idle")
 SKELETON_WALK = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "walk")
 SKELETON_ATTACK_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "attack")
+SKELETON_ATTACK2_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "attack2")
 SKELETON_HURT_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "hurt")
 SKELETON_DEAD_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "dead")
 SKELETON_RUN_DIR = os.path.join(IMAGES_DIR, "Skeleton_Warrior", "run")
@@ -94,6 +96,14 @@ player_attack_animations = [
     for i in range(1, 6)
 ]
 
+player_attack2_animations = [
+    pygame.transform.scale(
+        pygame.image.load(os.path.join(PLAYER_ATTACK2_DIR, f"row-1-column-{i}.png")).convert_alpha(),
+        PLAYER_SIZE
+    )
+    for i in range(1, 5)
+]
+
 player_defend_animations = [
     pygame.transform.scale(
         pygame.image.load(os.path.join(PLAYER_DEFEND_DIR, f"row-1-column-{i}.png")).convert_alpha(),
@@ -140,6 +150,14 @@ enemy_attack_animations = [
         ENEMY_SIZE
     )
     for i in range(1, 6)
+]
+
+enemy_attack2_animations = [
+    pygame.transform.scale(
+        pygame.image.load(os.path.join(SKELETON_ATTACK2_DIR, f"row-1-column-{i}.png")).convert_alpha(),
+        ENEMY_SIZE
+    )
+    for i in range(1, 7)
 ]
 
 enemy_hurt_animations = [
@@ -228,12 +246,12 @@ class Arrow(pygame.sprite.Sprite):
         super().__init__()
         arrow_path = os.path.join(ARCHER_ARROW, "Arrow.png")
         self.original_image = pygame.image.load(arrow_path).convert_alpha()        
-        self.original_image = pygame.transform.scale(self.original_image, (100, 25))  # tamanho mais realista da flecha
-        if direction == -1:  
+        self.original_image = pygame.transform.scale(self.original_image, (100, 25))  # tamanho da flecha
+        if direction == -1:
             self.image = pygame.transform.flip(self.original_image, True, False)
-        else:  
+        else:
             self.image = self.original_image
-        
+
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.speed = speed * direction
@@ -242,7 +260,7 @@ class Arrow(pygame.sprite.Sprite):
     def update(self):
         self.rect.x += self.speed
         
-        if self.rect.x < -500 or self.rect.x > 10000:
+        if self.rect.right < 0 or self.rect.left > WINDOW_WIDTH + self.rect.width + 200: 
             self.kill()
 
 class Background:
@@ -260,9 +278,13 @@ class Background:
         for i, layer in enumerate(self.layers):
             pos = self.positions[i]
             layer_width = layer.get_width()
-            pos = pos % layer_width
-            if pos > 0:
-                pos -= layer_width
+            if layer_width > 0 : # Evita divisão por zero se alguma camada tiver largura 0
+                pos = pos % layer_width
+                if pos > 0:
+                    pos -= layer_width
+            else:
+                pos = 0 # Define pos como 0 se layer_width for 0
+
             x = pos
             while x < screen.get_width():
                 screen.blit(layer, (x, 0))
@@ -277,12 +299,13 @@ class Player(pygame.sprite.Sprite):
         self.walk_animations = player_walk_animations
         self.run_animations = player_run_animations
         self.attack_animations = player_attack_animations
+        self.attack2_animations = player_attack2_animations
         self.defend_animations = player_defend_animations
         self.hurt_animations = player_hurt_animations
         self.dead_animations = player_dead_animations
         
         # Estados
-        self.state = "idle"  # idle, walk, run, attack, defend, hurt, dead
+        self.state = "idle"  # idle, walk, run, attack, attack2, defend, hurt, dead
         self.image_index = 0
         self.image = self.idle_animations[self.image_index]
         self.rect = self.image.get_rect(topleft=(x, y))
@@ -294,15 +317,25 @@ class Player(pygame.sprite.Sprite):
         self.max_health = 100
         self.health = self.max_health
         self.attack_damage = 30
-        self.attack_range = 20
+        self.attack2_damage = 45 # Dano diferente para o segundo ataque
         self.is_defending = False
         self.hurt_timer = 0
-        self.attack_timer = 0
+        self.attack_timer = 0 # Controla a duração do estado de ataque
         self.dead = False
         self.death_animation_complete = False
+        self.current_attack_type = "attack"  # "attack" ou "attack2"
         
-        self.walk_speed = 3
-        self.run_speed = 15
+        self.walk_speed = 4
+        self.run_speed = 10
+
+        self.attack_hitbox_width = 180
+        self.attack_hitbox_height = 120
+        self.attack_hitbox_offset_x_right = 90
+        self.attack_hitbox_offset_x_left = -110 # Mais para trás para compensar o centro
+        self.attack_hitbox_offset_y = 20
+        self.attack_hitbox = pygame.Rect(0, 0, self.attack_hitbox_width, self.attack_hitbox_height)
+        self.last_attack_press_time = 0 # Para cooldown entre os cliques de ataque
+        self.attack_input_cooldown = 300 # ms, para não spammar ataques
         
         self.attack_hitbox = pygame.Rect(0, 0, 150, 100)
 
@@ -314,34 +347,61 @@ class Player(pygame.sprite.Sprite):
                 self.dead = True
                 self.state = "dead"
                 self.image_index = 0
-                self.death_animation_complete = False
+                self.death_animation_complete = False            
             else:
                 self.state = "hurt"
-                self.hurt_timer = 400
+                self.hurt_timer = 400 #ms
                 self.image_index = 0
 
     def attack(self):
-        if self.state not in ["attack", "hurt", "dead"]:
-            self.state = "attack"
-            self.attack_timer = 600  
+        # Só permite novo ataque se não estiver atacando, ferido, morto e se o cooldown de input passou
+        current_time = pygame.time.get_ticks()
+        if self.state not in ["attack", "attack2", "hurt", "dead"] and \
+           current_time - self.last_attack_press_time > self.attack_input_cooldown:
+
+            self.last_attack_press_time = current_time # Registra o tempo do input
+
+            if self.current_attack_type == "attack":
+                self.state = "attack"
+                self.current_attack_type = "attack2" # Prepara para o próximo ser attack2
+                self.attack_timer = 500 # Duração do estado de ataque 1 (ms)
+            else: # self.current_attack_type == "attack2"
+                self.state = "attack2"
+                self.current_attack_type = "attack" # Prepara para o próximo ser attack
+                self.attack_timer = 600 # Duração do estado de ataque 2 (ms)
+
             self.image_index = 0
             return True
         return False
 
     def defend(self, defending):
-        if self.state not in ["attack", "hurt", "dead"]:
+        # Só pode defender se não estiver atacando, ferido ou morto
+        if self.state not in ["attack", "attack2", "hurt", "dead"]:
             self.is_defending = defending
             if defending and self.state != "defend":
                 self.state = "defend"
                 self.image_index = 0
+            elif not defending and self.state == "defend": # Se soltar o botão de defesa
+                self.state = "idle"
+                self.image_index = 0
 
     def get_attack_hitbox(self):
-        if self.state == "attack" and self.image_index >= 2:  
+        # Define em qual frame da animação a hitbox fica ativa
+        # Ajuste os self.image_index conforme a sua animação
+        activate_hitbox = False
+        if self.state == "attack" and self.image_index >= 2 and self.image_index <= 3: # Ex: frames 2 e 3 do attack1
+            activate_hitbox = True
+        elif self.state == "attack2" and self.image_index >= 1 and self.image_index <= 2: # Ex: frames 1 e 2 do attack2
+            activate_hitbox = True
+
+        if activate_hitbox:
+            player_center_x = self.world_x + self.rect.width / 2
+            player_center_y = self.world_y + self.rect.height / 2 # Ajuste se o Y do sprite não for o centro visual
             if self.facing_right:
-                self.attack_hitbox.centerx = self.world_x + 100
+                self.attack_hitbox.centerx = player_center_x + self.attack_hitbox_offset_x_right
             else:
-                self.attack_hitbox.centerx = self.world_x - 50
-            self.attack_hitbox.centery = self.world_y + 50
+                self.attack_hitbox.centerx = player_center_x + self.attack_hitbox_offset_x_left
+            self.attack_hitbox.centery = player_center_y + self.attack_hitbox_offset_y
             return self.attack_hitbox
         return None
 
@@ -350,7 +410,6 @@ class Player(pygame.sprite.Sprite):
             return 0
             
         self.animation_timer += dt
-        
         if self.hurt_timer > 0:
             self.hurt_timer -= dt
             if self.hurt_timer <= 0:
@@ -358,7 +417,7 @@ class Player(pygame.sprite.Sprite):
                 
         if self.attack_timer > 0:
             self.attack_timer -= dt
-            if self.attack_timer <= 0 and self.state == "attack":
+            if self.attack_timer <= 0 and (self.state == "attack" or self.state == "attack2"):
                 self.state = "idle"
 
         if mouse_buttons[0]:  
@@ -369,7 +428,7 @@ class Player(pygame.sprite.Sprite):
         if keys[K_SPACE]:  
             self.attack()        
         movement = 0
-        if self.state not in ["attack", "hurt", "dead"] and not self.is_defending:
+        if self.state not in ["attack", "attack2", "hurt", "dead"] and not self.is_defending:
             is_moving = keys[K_a] or keys[K_d] or keys[K_w] or keys[K_s]
             is_running = keys[K_LSHIFT] or keys[K_RSHIFT]
             
@@ -399,9 +458,7 @@ class Player(pygame.sprite.Sprite):
                 self.state = "idle"
                 
         self.world_x = max(0, min(self.world_x, WORLD_WIDTH - self.rect.width))
-        self.world_y = max(0, min(self.world_y, WORLD_HEIGHT - self.rect.height))
-
-        # Atualizar animação
+        self.world_y = max(0, min(self.world_y, WORLD_HEIGHT - self.rect.height))        
         self.update_animation()        
         return movement
 
@@ -418,6 +475,9 @@ class Player(pygame.sprite.Sprite):
         elif self.state == "attack":
             current_animations = self.attack_animations
             animation_speed = 120  
+        elif self.state == "attack2":
+            current_animations = self.attack2_animations
+            animation_speed = 120
         elif self.state == "defend":
             current_animations = self.defend_animations
             animation_speed = 200
@@ -432,13 +492,20 @@ class Player(pygame.sprite.Sprite):
             animation_speed = 150
         
         if self.animation_timer > animation_speed:
-            if self.state == "dead":
+            if self.state == "dead":                
                 if self.image_index < len(current_animations) - 1:
                     self.image_index += 1
                 else:
                     self.image_index = len(current_animations) - 1
                     self.death_animation_complete = True
             elif self.state == "attack":
+                if self.image_index < len(current_animations) - 1:
+                    self.image_index += 1
+                else:
+                    self.state = "idle"
+                    self.image_index = 0
+                    self.attack_timer = 0
+            elif self.state == "attack2":
                 if self.image_index < len(current_animations) - 1:
                     self.image_index += 1
                 else:
@@ -452,7 +519,6 @@ class Player(pygame.sprite.Sprite):
             if not self.facing_right:
                 sprite = pygame.transform.flip(sprite, True, False)
             self.image = sprite
-            
             self.animation_timer = 0
 
 class Skeleton(pygame.sprite.Sprite):
@@ -462,13 +528,14 @@ class Skeleton(pygame.sprite.Sprite):
         self.idle_animations = enemy_idle_animations
         self.walk_animations = enemy_walk_animations
         self.attack_animations = enemy_attack_animations
+        self.attack2_animations = enemy_attack2_animations
         self.hurt_animations = enemy_hurt_animations
         self.dead_animations = enemy_dead_animations
         self.run_animations = enemy_run_animations
         self.defend_animations = enemy_defend_animations
         
         # Estados
-        self.state = "idle"  # idle, walk, run, attack, defend, hurt, dead
+        self.state = "idle"  # idle, walk, run, attack, attack2, defend, hurt, dead
         self.image_index = 0
         self.image = self.idle_animations[self.image_index]
         self.rect = self.image.get_rect(topleft=(x, y))
@@ -479,27 +546,29 @@ class Skeleton(pygame.sprite.Sprite):
         
         # Atributos de combate
         self.max_health = 80
-        self.health = self.max_health
-        self.attack_damage = 25        self.attack_range = 80
+        self.health = self.max_health        
+        self.attack_damage = 25
+        self.attack_range = 80
         self.speed = 2
         self.run_speed = 4
-        self.chase_distance = 600  # Aumentada de 400 para 600
+        self.chase_distance = 600  
         self.attack_distance = 80
-        self.run_distance = 300  # Aumentada de 200 para 300
-        self.walk_approach_distance = 120  # Distância para andar (mais próximo)
+        self.run_distance = 300  
+        self.walk_approach_distance = 120  
         self.attack_timer = 0
         self.hurt_timer = 0
-        self.defend_timer = 0
+        self.defend_timer = 0        
         self.defend_cooldown = 1500  # Cooldown entre defesas
         self.last_defend_time = 0
         self.dead = False
         self.death_animation_complete = False
         self.has_seen_player = False
         self.persistent_chase = False
+        self.max_chase_distance = 1500  # Maximum distance to chase once engaged
         self.is_defending = False
-        self.defend_chance = 0.4  # 40% chance de defender
-          # Hitbox para ataques
+        self.defend_chance = 0.5
         self.attack_hitbox = pygame.Rect(0, 0, 120, 80)
+        self.current_attack = 1  # 1 ou 2 para alternar entre ataques
         
     def take_damage(self, damage):
         if self.state != "hurt" and not self.dead:
@@ -528,26 +597,31 @@ class Skeleton(pygame.sprite.Sprite):
             else:
                 self.state = "hurt"
                 self.hurt_timer = 400                
-                self.image_index = 0
-        return False
+                self.image_index = 0        
+            return False
         
     def attack_player(self):
-        if self.state not in ["attack", "hurt", "dead", "defend"]:
-            self.state = "attack"
-            self.attack_timer = 1200  # Ataque mais lento que antes
+        if self.state not in ["attack", "attack2", "hurt", "dead", "defend"]:
+            if self.current_attack == 1:
+                self.state = "attack"
+                self.current_attack = 2
+            else:
+                self.state = "attack2"
+                self.current_attack = 1
+            self.attack_timer = 1200  
             self.image_index = 0
             return True
-        return False
-
+        return False    
+    
     def get_attack_hitbox(self):
-        if self.state == "attack" and self.image_index >= 3:  
+        if (self.state == "attack" or self.state == "attack2") and self.image_index >= 3:  
             if self.facing_right:
                 self.attack_hitbox.centerx = self.world_x + 80
             else:
                 self.attack_hitbox.centerx = self.world_x - 20
             self.attack_hitbox.centery = self.world_y + 50
             return self.attack_hitbox
-        return None    
+        return None
     
     def update(self, dt, player_x=None, player_y=None):
         self.animation_timer += dt
@@ -561,20 +635,17 @@ class Skeleton(pygame.sprite.Sprite):
             self.hurt_timer -= dt
             if self.hurt_timer <= 0:
                 self.state = "idle"
-                
-        if self.attack_timer > 0:
-            self.attack_timer -= dt
-            if self.attack_timer <= 0:
+                if self.attack_timer > 0:
+                    self.attack_timer -= dt
+            if self.attack_timer <= 0 and (self.state == "attack" or self.state == "attack2"):
                 self.state = "idle"
                 
         if self.defend_timer > 0:
             self.defend_timer -= dt
             if self.defend_timer <= 0:
                 self.state = "idle"
-                self.is_defending = False
-        
-        # IA para seguir e atacar o player
-        if player_x is not None and player_y is not None and self.state not in ["attack", "hurt", "defend"]:
+                self.is_defending = False          # IA para seguir e atacar o player
+        if player_x is not None and player_y is not None and self.state not in ["attack", "attack2", "hurt", "defend"]:
             distance_x = abs(player_x - self.world_x)
             distance_y = abs(player_y - self.world_y)
             total_distance = (distance_x**2 + distance_y**2)**0.5
@@ -582,23 +653,8 @@ class Skeleton(pygame.sprite.Sprite):
             # Atacar se estiver perto o suficiente
             if total_distance < self.attack_distance:
                 self.attack_player()
-            # Correr se estiver na distância de corrida
-            elif total_distance < self.run_distance and total_distance > self.walk_approach_distance: 
-                self.state = "run"
-                # Mover em direção ao player com velocidade de corrida
-                if player_x > self.world_x:
-                    self.world_x += self.run_speed
-                    self.facing_right = True
-                elif player_x < self.world_x:
-                    self.world_x -= self.run_speed
-                    self.facing_right = False
-                
-                if player_y > self.world_y:
-                    self.world_y += self.run_speed
-                elif player_y < self.world_y:
-                    self.world_y -= self.run_speed
-            # Andar se estiver na distância de caminhada
-            elif total_distance < self.chase_distance:
+            # Andar se estiver próximo (após atacar)
+            elif total_distance < self.walk_approach_distance:
                 self.state = "walk"
                 # Mover em direção ao player com velocidade de caminhada
                 if player_x > self.world_x:
@@ -612,6 +668,21 @@ class Skeleton(pygame.sprite.Sprite):
                     self.world_y += self.speed
                 elif player_y < self.world_y:
                     self.world_y -= self.speed
+            # Correr se estiver longe (perseguição de longa distância)
+            elif total_distance < self.chase_distance:
+                self.state = "run"
+                # Mover em direção ao player com velocidade de corrida
+                if player_x > self.world_x:
+                    self.world_x += self.run_speed
+                    self.facing_right = True
+                elif player_x < self.world_x:
+                    self.world_x -= self.run_speed
+                    self.facing_right = False
+                
+                if player_y > self.world_y:
+                    self.world_y += self.run_speed
+                elif player_y < self.world_y:
+                    self.world_y -= self.run_speed
                 
                 # Manter dentro dos limites do mundo
                 self.world_x = max(0, min(self.world_x, WORLD_WIDTH - self.rect.width))
@@ -625,7 +696,7 @@ class Skeleton(pygame.sprite.Sprite):
         # Escolher animações baseadas no estado
         if self.state == "idle":
             current_animations = self.idle_animations
-            animation_speed = 150
+            animation_speed = 150            
         elif self.state == "walk":
             current_animations = self.walk_animations
             animation_speed = 120
@@ -634,6 +705,9 @@ class Skeleton(pygame.sprite.Sprite):
             animation_speed = 100
         elif self.state == "attack":
             current_animations = self.attack_animations
+            animation_speed = 100
+        elif self.state == "attack2":
+            current_animations = self.attack2_animations
             animation_speed = 100
         elif self.state == "defend":
             current_animations = self.defend_animations
@@ -647,8 +721,7 @@ class Skeleton(pygame.sprite.Sprite):
         else:
             current_animations = self.idle_animations
             animation_speed = 150
-          
-        # Atualizar frame da animação
+            # Atualizar frame da animação
         if self.animation_timer > animation_speed:
             if self.state == "dead":
                 if self.image_index < len(current_animations) - 1:
@@ -657,6 +730,20 @@ class Skeleton(pygame.sprite.Sprite):
                     # Ficar no último frame da animação de morte
                     self.image_index = len(current_animations) - 1
                     self.death_animation_complete = True
+            elif self.state == "attack":
+                if self.image_index < len(current_animations) - 1:
+                    self.image_index += 1
+                else:
+                    self.state = "idle"
+                    self.image_index = 0
+                    self.attack_timer = 0
+            elif self.state == "attack2":
+                if self.image_index < len(current_animations) - 1:
+                    self.image_index += 1
+                else:
+                    self.state = "idle"
+                    self.image_index = 0
+                    self.attack_timer = 0
             else:
                 self.image_index = (self.image_index + 1) % len(current_animations)
             
