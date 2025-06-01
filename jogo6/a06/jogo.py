@@ -316,8 +316,8 @@ class Player(pygame.sprite.Sprite):
         
         self.max_health = 100
         self.health = self.max_health
-        self.attack_damage = 30
-        self.attack2_damage = 45 # Dano diferente para o segundo ataque
+        self.attack_damage = 20
+        self.attack2_damage = 20 
         self.is_defending = False
         self.hurt_timer = 0
         self.attack_timer = 0 # Controla a duração do estado de ataque
@@ -328,10 +328,10 @@ class Player(pygame.sprite.Sprite):
         self.walk_speed = 4
         self.run_speed = 10
 
-        self.attack_hitbox_width = 180
-        self.attack_hitbox_height = 120
+        self.attack_hitbox_width = 120
+        self.attack_hitbox_height = 100
         self.attack_hitbox_offset_x_right = 90
-        self.attack_hitbox_offset_x_left = -110 # Mais para trás para compensar o centro
+        self.attack_hitbox_offset_x_left = -110 
         self.attack_hitbox_offset_y = 20
         self.attack_hitbox = pygame.Rect(0, 0, self.attack_hitbox_width, self.attack_hitbox_height)
         self.last_attack_press_time = 0 # Para cooldown entre os cliques de ataque
@@ -547,28 +547,26 @@ class Skeleton(pygame.sprite.Sprite):
         self.world_x = x
         self.world_y = y
         self.facing_right = True
-        
-        # Atributos de combate
-        self.max_health = 80
+        self.max_health = 120 
         self.health = self.max_health        
         self.attack_damage = 25
         self.attack_range = 80
         self.speed = 2
         self.run_speed = 4
-        self.chase_distance = 800
+        self.chase_distance = 900
         self.attack_distance = 80
-        self.run_distance = 300  
+        self.run_distance = 400  
         self.walk_approach_distance = 120  
         self.attack_timer = 0
         self.hurt_timer = 0
         self.defend_timer = 0        
-        self.defend_cooldown = 1500  # Cooldown entre defesas
+        self.defend_cooldown = 1500  
         self.last_defend_time = 0
         self.dead = False
         self.death_animation_complete = False
         self.has_seen_player = False
         self.persistent_chase = False
-        self.max_chase_distance = 1500  # Maximum distance to chase once engaged
+        self.max_chase_distance = 1500  
         self.is_defending = False
         self.defend_chance = 0.5
         self.attack_hitbox = pygame.Rect(0, 0, 120, 80)
@@ -600,7 +598,7 @@ class Skeleton(pygame.sprite.Sprite):
                 return True  # Morreu
             else:
                 self.state = "hurt"
-                self.hurt_timer = 400                
+                self.hurt_timer = 500                
                 self.image_index = 0        
             return False
         
@@ -781,9 +779,7 @@ class Archer(pygame.sprite.Sprite):
         self.world_x = x
         self.world_y = y
         self.facing_right = True
-        
-        # Atributos de combate
-        self.max_health = 40
+        self.max_health = 80
         self.health = self.max_health
         self.speed = 1.5
         self.chase_distance = 500
@@ -955,7 +951,6 @@ class Archer(pygame.sprite.Sprite):
             
             self.animation_timer = 0
 
-# Função para o menu inicial
 def menu():
     clock = pygame.time.Clock()
     running = True
@@ -1076,6 +1071,9 @@ def death_screen():
 
 # Função principal do jogo
 def main():
+    # Ocultar o cursor do mouse durante o jogo
+    pygame.mouse.set_visible(False)
+    
     # Parallax apenas nas camadas de fundo (0 a 4), os elementos visuais próximos ao jogador não devem ter paralaxe
     paralax_speeds = [0.1, 0.12, 0.15, 0.2, 0.25, 0.5, 0.5, 0.5]  
     background = Background(bg_layers, paralax_speeds)    
@@ -1220,7 +1218,6 @@ def main():
             arrow_screen_x = arrow.rect.x - camera_x
             arrow_screen_y = arrow.rect.y
             screen.blit(arrow.image, (arrow_screen_x, arrow_screen_y))
-        
     
         health_x = WINDOW_WIDTH - 220
         health_y = WINDOW_HEIGHT - 40
@@ -1230,10 +1227,6 @@ def main():
         font = pygame.font.SysFont("Arial", 16)
         health_text = font.render(f"HP: {player.health}/{player.max_health}", True, (255, 255, 255))
         screen.blit(health_text, (health_x, health_y - 20))
-        
-    
-        distance_text = font.render(f"Distância Percorrida: {int(spawn_distance)}m", True, (255, 255, 255))
-        screen.blit(distance_text, (health_x, health_y - 40))
 
         instructions = [
             "WASD - Mover",
