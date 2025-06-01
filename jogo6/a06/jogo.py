@@ -408,8 +408,9 @@ class Player(pygame.sprite.Sprite):
     def update(self, keys, dt, mouse_buttons):
         if self.dead and self.death_animation_complete:
             return 0
-            
+        
         self.animation_timer += dt
+
         if self.hurt_timer > 0:
             self.hurt_timer -= dt
             if self.hurt_timer <= 0:
@@ -420,13 +421,16 @@ class Player(pygame.sprite.Sprite):
             if self.attack_timer <= 0 and (self.state == "attack" or self.state == "attack2"):
                 self.state = "idle"
 
-        if mouse_buttons[0]:  
+        if mouse_buttons[2]:  # Botão direito do mouse para defesa
             self.defend(True)
         else:
             self.defend(False)
-            
-        if keys[K_SPACE]:  
-            self.attack()        
+
+        # Verifica se o jogador pressionou o botão de ataque
+        if mouse_buttons[0]:  # Botão esquerdo do mouse para ataque
+            if self.attack():
+                return 0
+
         movement = 0
         if self.state not in ["attack", "attack2", "hurt", "dead"] and not self.is_defending:
             is_moving = keys[K_a] or keys[K_d] or keys[K_w] or keys[K_s]
@@ -551,7 +555,7 @@ class Skeleton(pygame.sprite.Sprite):
         self.attack_range = 80
         self.speed = 2
         self.run_speed = 4
-        self.chase_distance = 600  
+        self.chase_distance = 800
         self.attack_distance = 80
         self.run_distance = 300  
         self.walk_approach_distance = 120  
@@ -639,12 +643,13 @@ class Skeleton(pygame.sprite.Sprite):
                     self.attack_timer -= dt
             if self.attack_timer <= 0 and (self.state == "attack" or self.state == "attack2"):
                 self.state = "idle"
-                
-        if self.defend_timer > 0:
-            self.defend_timer -= dt
+            if self.defend_timer > 0:
+                self.defend_timer -= dt
             if self.defend_timer <= 0:
                 self.state = "idle"
-                self.is_defending = False          # IA para seguir e atacar o player
+                self.is_defending = False
+        
+        # IA para seguir e atacar o player
         if player_x is not None and player_y is not None and self.state not in ["attack", "attack2", "hurt", "defend"]:
             distance_x = abs(player_x - self.world_x)
             distance_y = abs(player_y - self.world_y)
@@ -1227,27 +1232,20 @@ def main():
         screen.blit(health_text, (health_x, health_y - 20))
         
     
-        distance_text = font.render(f"Distance: {int(spawn_distance)}m", True, (255, 255, 255))
+        distance_text = font.render(f"Distância Percorrida: {int(spawn_distance)}m", True, (255, 255, 255))
         screen.blit(distance_text, (health_x, health_y - 40))
-        
-    
-        total_enemies = len(enemies) + len(archers)
-        alive_enemies = len([e for e in enemies if not e.dead]) + len([a for a in archers if not a.dead])
-        enemies_text = font.render(f"Enemies: {alive_enemies}/{total_enemies}", True, (255, 255, 255))
-        screen.blit(enemies_text, (health_x, health_y - 60))
-        
-    
+
         instructions = [
             "WASD - Mover",
             "SHIFT - Correr", 
-            "ESPAÇO - Atacar",
-            "Mouse Left - Defender",
+            "MB1 - Atacar",
+            "MB2 - Defender",
             "ESC - Sair"
         ]
-        instruction_font = pygame.font.SysFont("Arial", 14)
+        instruction_font = pygame.font.SysFont("Arial", 14, bold=True)
         for i, instruction in enumerate(instructions):
             inst_text = instruction_font.render(instruction, True, (255, 255, 255))
-            screen.blit(inst_text, (10, 10 + i * 20))
+            screen.blit(inst_text, (10, 10 + i * 30))
         
         pygame.display.flip()
 
