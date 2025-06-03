@@ -246,21 +246,26 @@ class Arrow(pygame.sprite.Sprite):
         super().__init__()
         arrow_path = os.path.join(ARCHER_ARROW, "Arrow.png")
         self.original_image = pygame.image.load(arrow_path).convert_alpha()        
-        self.original_image = pygame.transform.scale(self.original_image, (100, 25))  # tamanho da flecha
+        self.original_image = pygame.transform.scale(self.original_image, (100, 75))  # tamanho da flecha
         if direction == -1:
             self.image = pygame.transform.flip(self.original_image, True, False)
         else:
             self.image = self.original_image
 
         self.rect = self.image.get_rect()
+        # Use world coordinates
+        self.world_x = x
+        self.world_y = y
         self.rect.center = (x, y)
         self.speed = speed * direction
         self.damage = 20
         
     def update(self):
-        self.rect.x += self.speed
+        self.world_x += self.speed
+        self.rect.x = self.world_x
         
-        if self.rect.right < 0 or self.rect.left > WINDOW_WIDTH + self.rect.width + 200: 
+        # Remove arrow when it goes too far off screen
+        if self.world_x < -500 or self.world_x > 10000: 
             self.kill()
 
 class Background:
@@ -547,7 +552,7 @@ class Skeleton(pygame.sprite.Sprite):
         self.world_x = x
         self.world_y = y
         self.facing_right = True
-        self.max_health = 120 
+        self.max_health = 150
         self.health = self.max_health        
         self.attack_damage = 25
         self.attack_range = 80
@@ -1183,7 +1188,7 @@ def main():
         # Verificar colisões das flechas com o player
         for arrow in arrows.copy():
             player_rect = pygame.Rect(player.world_x, player.world_y, player.rect.width, player.rect.height)
-            arrow_rect = pygame.Rect(arrow.rect.x, arrow.rect.y, arrow.rect.width, arrow.rect.height)
+            arrow_rect = pygame.Rect(arrow.world_x, arrow.world_y, arrow.rect.width, arrow.rect.height)
             if arrow_rect.colliderect(player_rect):
                 player.take_damage(arrow.damage)
                 arrows.remove(arrow)
@@ -1215,8 +1220,8 @@ def main():
             screen.blit(archer.image, (archer_screen_x, archer_screen_y))
         
         for arrow in arrows:
-            arrow_screen_x = arrow.rect.x - camera_x
-            arrow_screen_y = arrow.rect.y
+            arrow_screen_x = arrow.world_x - camera_x
+            arrow_screen_y = arrow.world_y - camera_y
             screen.blit(arrow.image, (arrow_screen_x, arrow_screen_y))
     
         health_x = WINDOW_WIDTH - 220
