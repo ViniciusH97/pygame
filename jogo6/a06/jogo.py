@@ -394,7 +394,7 @@ class Player(pygame.sprite.Sprite):
         # Define em qual frame da animação a hitbox fica ativa
         # Ajuste os self.image_index conforme a sua animação
         activate_hitbox = False
-        if self.state == "attack" and self.image_index >= 2 and self.image_index <= 3: # Ex: frames 2 e 3 do attack1
+        if self.state == "attack" and self.image_index >= 1 and self.image_index <= 2: # Ex: frames 2 e 3 do attack1
             activate_hitbox = True
         elif self.state == "attack2" and self.image_index >= 1 and self.image_index <= 2: # Ex: frames 1 e 2 do attack2
             activate_hitbox = True
@@ -544,7 +544,7 @@ class Skeleton(pygame.sprite.Sprite):
         self.defend_animations = enemy_defend_animations
         
         # Estados
-        self.state = "idle"  # idle, walk, run, attack, attack2, defend, hurt, dead
+        self.state = "idle"  
         self.image_index = 0
         self.image = self.idle_animations[self.image_index]
         self.rect = self.image.get_rect(topleft=(x, y))
@@ -554,10 +554,10 @@ class Skeleton(pygame.sprite.Sprite):
         self.facing_right = True
         self.max_health = 150
         self.health = self.max_health        
-        self.attack_damage = 25
+        self.attack_damage = 30
         self.attack_range = 80
         self.speed = 2
-        self.run_speed = 4
+        self.run_speed = 6
         self.chase_distance = 900
         self.attack_distance = 80
         self.run_distance = 400  
@@ -565,7 +565,6 @@ class Skeleton(pygame.sprite.Sprite):
         self.attack_timer = 0
         self.hurt_timer = 0
         self.defend_timer = 0        
-        self.defend_cooldown = 1500  
         self.last_defend_time = 0
         self.dead = False
         self.death_animation_complete = False
@@ -573,7 +572,7 @@ class Skeleton(pygame.sprite.Sprite):
         self.persistent_chase = False
         self.max_chase_distance = 1500  
         self.is_defending = False
-        self.defend_chance = 0.5
+        self.defend_chance = 0.9
         self.attack_hitbox = pygame.Rect(0, 0, 120, 80)
         self.current_attack = 1  # 1 ou 2 para alternar entre ataques
         
@@ -582,7 +581,7 @@ class Skeleton(pygame.sprite.Sprite):
             # Chance de defender se não estiver em cooldown
             current_time = pygame.time.get_ticks()
             if (self.state not in ["attack", "defend"] and 
-                current_time - self.last_defend_time > self.defend_cooldown and 
+                current_time - self.last_defend_time and 
                 random.random() < self.defend_chance):
                 # Defender o ataque
                 self.state = "defend"
@@ -787,8 +786,8 @@ class Archer(pygame.sprite.Sprite):
         self.max_health = 80
         self.health = self.max_health
         self.speed = 1.5
-        self.chase_distance = 500
-        self.attack_distance = 300
+        self.chase_distance = 800
+        self.attack_distance = 100
         self.min_distance = 150  # Distância mínima do player
         self.shoot_timer = 0
         self.shoot_cooldown = 2000  # 2 segundos entre tiros
