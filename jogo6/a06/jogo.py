@@ -1,163 +1,110 @@
-import pygame
-import sys
 import os
+import pygame
+from pygame.locals import *
 
-# Initialize Pygame
 pygame.init()
 
-# Screen settings
-SCREEN_WIDTH = pygame.display.Info().current_w
-SCREEN_HEIGHT = pygame.display.Info().current_h
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
-pygame.display.set_caption("The Last of Us 2D")
+WINDOW_WIDTH = pygame.display.Info().current_w
+WINDOW_HEIGHT = pygame.display.Info().current_h
 
-# Colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GRAY = (128, 128, 128)
-ORANGE = (255, 165, 0)
-RED = (255, 0, 0)
-DARK_RED = (139, 0, 0)
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN)
+pygame.display.set_caption("Dark Souls 2D")
 
-# Clock for FPS
-clock = pygame.time.Clock()
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+IMAGES_DIR = os.path.join(BASE_DIR, "imagens")
 
-class ParallaxLayer:
-    def __init__(self, image_path, speed):
-        try:
-            self.image = pygame.image.load(image_path).convert_alpha()
-            self.image = pygame.transform.scale(self.image, (SCREEN_WIDTH, SCREEN_HEIGHT))
-        except pygame.error:
-            # Create a fallback colored surface if image not found
-            self.image = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-            self.image.fill((50, 50, 50))
-            print(f"Could not load image: {image_path}")
-        
-        self.speed = speed
-        self.x = 0
-        self.width = self.image.get_width()
+class Background:
+    def __init__(self, layers, speeds):
+        self.layers = layers
+        self.speeds = speeds
+        self.positions = [0] * len(layers)
     
-    def update(self):
-        self.x -= self.speed
-        if self.x <= -self.width:
-            self.x = 0
+    def update(self, dt, camera_x):
+        for i in range(len(self.layers)):
+            self.positions[i] = -camera_x * self.speeds[i]
     
-    def draw(self, surface):
-        surface.blit(self.image, (self.x, 0))
-        surface.blit(self.image, (self.x + self.width, 0))
+    def draw(self, screen):
+        for i, layer in enumerate(self.layers):
+            x = self.positions[i] % WINDOW_WIDTH
+            screen.blit(layer, (x, 0))
+            if x > 0:
+                screen.blit(layer, (x - WINDOW_WIDTH, 0))
 
-class Menu:
-    def __init__(self):
-        self.font_title = pygame.font.Font(None, 84)
-        self.font_option = pygame.font.Font(None, 56)
-        self.options = ["NEW GAME", "EXIT"]
-        self.selected = 0
-        
-        # Create parallax layers with your PNG files
-        self.layers = [
-            ParallaxLayer("jogo6/imagens/Postapocalypce1/Pale/clouds1.png", 0.2),           # Sky layer (slowest)
-            ParallaxLayer("jogo6/imagens/Postapocalypce1/Pale/clouds2.png", 0.4),           # Cloud layer
-            ParallaxLayer("jogo6/imagens/Postapocalypce1/Pale/ground&houses_bg.png", 0.6),  # Background buildings
-            ParallaxLayer("jogo6/imagens/Postapocalypce1/Pale/ground&houses.png", 0.9),     # Main buildings
-            ParallaxLayer("jogo6/imagens/Postapocalypce1/Pale/ground&houses2.png", 1.2),    # Additional buildings
-            ParallaxLayer("jogo6/imagens/Postapocalypce1/Pale/fence.png", 1.5),             # Fence layer
-            ParallaxLayer("jogo6/imagens/Postapocalypce1/Pale/road.png", 1.8),              # Road (fastest)
-        ]
-    
-    def handle_event(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                self.selected = (self.selected - 1) % len(self.options)
-            elif event.key == pygame.K_DOWN:
-                self.selected = (self.selected + 1) % len(self.options)
-            elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                return self.options[self.selected]
-            elif event.key == pygame.K_ESCAPE:
-                return "EXIT"
-        return None
-    
-    def update(self):
-        for layer in self.layers:
-            layer.update()
-    
-    def draw(self, surface):
-        # Draw parallax background layers
-        for layer in self.layers:
-            layer.draw(surface)
-        
-        # Draw semi-transparent overlay for better text visibility
-        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        overlay.set_alpha(120)
-        overlay.fill(BLACK)
-        surface.blit(overlay, (0, 0))
-        
-        # Draw title with shadow effect
-        title_shadow = self.font_title.render("THE LAST OF US 2D", True, BLACK)
-        title_text = self.font_title.render("THE LAST OF US 2D", True, WHITE)
-        title_rect = title_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3))
-        
-        # Draw shadow slightly offset
-        surface.blit(title_shadow, (title_rect.x + 3, title_rect.y + 3))
-        surface.blit(title_text, title_rect)
-        
-        # Draw menu options
-        for i, option in enumerate(self.options):
-            if i == self.selected:
-                color = ORANGE
-                # Draw selection background
-                option_text = self.font_option.render(option, True, color)
-                option_rect = option_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 100))
-                
-                # Selection highlight
-                highlight_rect = option_rect.inflate(40, 20)
-                pygame.draw.rect(surface, DARK_RED, highlight_rect)
-                pygame.draw.rect(surface, ORANGE, highlight_rect, 3)
-            else:
-                color = WHITE
-                option_text = self.font_option.render(option, True, color)
-                option_rect = option_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 100))
-            
-            # Draw option text shadow
-            option_shadow = self.font_option.render(option, True, BLACK)
-            surface.blit(option_shadow, (option_rect.x + 2, option_rect.y + 2))
-            surface.blit(option_text, option_rect)
-        
-        # Draw controls hint
-        hint_font = pygame.font.Font(None, 32)
-        hint_text = hint_font.render("Use Arrow Keys to Navigate • Enter to Select • ESC to Exit", True, GRAY)
-        hint_rect = hint_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 50))
-        surface.blit(hint_text, hint_rect)
-
-def main():
-    menu = Menu()
+def menu():
+    clock = pygame.time.Clock()
     running = True
     
+    # Load background layers
+    menu_layers = []
+    menu_speeds = [0.2, 0.4, 0.7, 1.0, 1.5, 2.0]
+    MENU_BG_DIR = os.path.join(IMAGES_DIR, "Postapocalypce2", "Bright")
+    menu_layer_files = ["sky.png", "houses&trees_bg.png", "houses.png", "car_trees_etc.png", "fence.png", "road.png"]
+    
+    for filename in menu_layer_files:
+        path = os.path.join(MENU_BG_DIR, filename)
+        if os.path.exists(path):
+            img = pygame.image.load(path).convert_alpha()
+            img = pygame.transform.scale(img, (WINDOW_WIDTH, WINDOW_HEIGHT))
+            menu_layers.append(img)
+    
+    menu_background = Background(menu_layers, menu_speeds)
+    
+    # Fonts
+    title_font = pygame.font.SysFont("Times New Roman", 72, bold=True)
+    option_font = pygame.font.SysFont("Arial", 50)
+    
+    # Menu options
+    selected_option = 0
+    options = ["New Game", "Exit"]
+
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            
-            result = menu.handle_event(event)
-            if result == "NEW GAME":
-                print("Starting new game...")
-                # Here you would transition to your game
-                # For now, we'll just continue showing the menu
-                pass
-            elif result == "EXIT":
-                running = False
+        dt = clock.tick(60)
         
-        # Update parallax layers
-        menu.update()
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                exit()
+            if event.type == KEYDOWN:
+                if event.key == K_UP:
+                    selected_option = (selected_option - 1) % len(options)
+                elif event.key == K_DOWN:
+                    selected_option = (selected_option + 1) % len(options)
+                elif event.key == K_RETURN:
+                    if selected_option == 0:  # New Game
+                        print("Starting new game...")
+                        # Add your game start code here
+                    elif selected_option == 1:  # Exit
+                        pygame.quit()
+                        exit()
+                elif event.key == K_ESCAPE:
+                    pygame.quit()
+                    exit()
+
+        # Update background with parallax effect
+        menu_background.update(dt, pygame.time.get_ticks() * 0.05)
         
         # Draw everything
-        screen.fill(BLACK)
-        menu.draw(screen)
+        screen.fill((0, 0, 0))
+        menu_background.draw(screen)
+        
+        # Draw title
+        title_text = title_font.render("SURVIVE IF YOU CAN", True, (255, 255, 255))
+        screen.blit(title_text, (WINDOW_WIDTH // 2 - title_text.get_width() // 2, 200))
+        
+        # Draw menu options
+        for i, option in enumerate(options):
+            color = (255, 255, 0) if i == selected_option else (150, 150, 150)
+            option_text = option_font.render(option, True, color)
+            screen.blit(option_text, (WINDOW_WIDTH // 2 - option_text.get_width() // 2, 350 + i * 80))
+        
+        # Draw instructions
+        instruction_font = pygame.font.SysFont("Arial", 24)
+        instructions = "Use UP/DOWN arrows to navigate, ENTER to select, ESC to exit"
+        inst_text = instruction_font.render(instructions, True, (200, 200, 200))
+        screen.blit(inst_text, (WINDOW_WIDTH // 2 - inst_text.get_width() // 2, WINDOW_HEIGHT - 100))
         
         pygame.display.flip()
-        clock.tick(60)
-    
-    pygame.quit()
-    sys.exit()
 
 if __name__ == "__main__":
-    main()
+    menu()
+    pygame.quit()
