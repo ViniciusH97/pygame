@@ -23,8 +23,7 @@ class AnimatedSprite:
         self.current_frame = 0
         self.frame_timer = 0
         self.frames = []
-        
-        # Extract frames from spritesheet
+
         for i in range(frame_count):
             frame = pygame.Surface((frame_width, frame_height), pygame.SRCALPHA)
             frame.blit(self.spritesheet, (0, 0), (i * frame_width, 0, frame_width, frame_height))
@@ -66,23 +65,20 @@ class Player:
         self.world_y = y
         self.speed = 200
         self.run_speed = 350
-        self.scale = 2.0  # Scale factor to make player bigger
-        self.rect = pygame.Rect(x, y, 128 * self.scale, 128 * self.scale)  # Updated size with scale
+        self.scale = 2.0  
+        self.rect = pygame.Rect(x, y, 128 * self.scale, 128 * self.scale)  
         self.facing_right = True
         self.attack_combo = 0
         self.animation_timer = 0
         self.current_state = "idle"
         self.animation_complete = True
-        
-        # Load animations with correct dimensions
+    
         raider_dir = os.path.join(IMAGES_DIR, "Raider_1")
         
-        # First, let's focus on just the idle animation to test
         try:
             idle_path = os.path.join(raider_dir, "Idle.png")
             print(f"Loading idle sprite from: {idle_path}")
-            
-            # Load and check the idle spritesheet
+        
             idle_sheet = pygame.image.load(idle_path).convert_alpha()
             print(f"Idle spritesheet size: {idle_sheet.get_size()}")
             
@@ -100,9 +96,8 @@ class Player:
                 # "jump": AnimatedSprite(os.path.join(raider_dir, "Jump.png"), 128, 128, 4, 150)
             }
             
-            # Add fallback animations (simple colored rectangles) for missing ones
             fallback_surface = pygame.Surface((128, 128), pygame.SRCALPHA)
-            fallback_surface.fill((0, 255, 0))  # Green rectangle
+            fallback_surface.fill((0, 255, 0)) 
             
             fallback_anim = AnimatedSprite.__new__(AnimatedSprite)
             fallback_anim.frames = [fallback_surface]
@@ -118,7 +113,7 @@ class Player:
             print(f"Error loading sprites: {e}")
             # Create a simple fallback
             fallback_surface = pygame.Surface((128, 128))
-            fallback_surface.fill((255, 0, 0))  # Red rectangle
+            fallback_surface.fill((255, 0, 0))  
             
             fallback_anim = AnimatedSprite.__new__(AnimatedSprite)
             fallback_anim.frames = [fallback_surface]
@@ -140,7 +135,6 @@ class Player:
         is_moving = False
         is_running = False
         
-        # Handle animation states
         if self.current_state in ["attack_1", "attack_2", "shot", "recharge"]:
             self.animation_timer += dt
             if self.animation_timer >= len(self.current_animation.frames) * self.current_animation.frame_duration:
@@ -148,7 +142,6 @@ class Player:
                 self.animation_complete = True
                 self.animation_timer = 0
         
-        # Simplified movement for testing - only allow idle and basic movement
         if self.current_state in ["idle", "walk", "run"]:
             if keys[K_a] or keys[K_LEFT]:
                 movement -= self.speed * dt / 1000
@@ -168,16 +161,12 @@ class Player:
                 self.world_y += self.speed * dt / 1000
                 is_moving = True
         
-        # Update position
         self.world_x += movement
         
-        # Limit Y movement (Y = 635 is the limit)
         self.world_y = max(0, min(self.world_y, 635))
-        
-        # For now, just stay in idle state to test the sprite
+      
         self.current_state = "idle"
         
-        # Set current animation
         self.current_animation = self.animations[self.current_state]
         self.current_animation.update(dt)
         
@@ -189,26 +178,25 @@ class Player:
             if image and image.get_width() > 0 and image.get_height() > 0:
                 if not self.facing_right:
                     image = pygame.transform.flip(image, True, False)
-                # Scale the image to make it bigger
+                
                 scaled_size = (int(128 * self.scale), int(128 * self.scale))
                 image = pygame.transform.scale(image, scaled_size)
                 return image
             else:
-                # Fallback to colored rectangle (also scaled)
+                
                 fallback = pygame.Surface((int(128 * self.scale), int(128 * self.scale)))
-                fallback.fill((255, 255, 0))  # Yellow fallback
+                fallback.fill((255, 255, 0))  
                 return fallback
         except Exception as e:
             print(f"Error getting player image: {e}")
             fallback = pygame.Surface((int(128 * self.scale), int(128 * self.scale)))
-            fallback.fill((255, 0, 255))  # Magenta fallback
+            fallback.fill((255, 0, 255))  
             return fallback
 
 def game():
     clock = pygame.time.Clock()
     running = True
     
-    # Load game background layers
     game_layers = []
     game_speeds = [0.1, 0.3, 0.5, 0.7, 0.9, 1.0]
     GAME_BG_DIR = os.path.join(IMAGES_DIR, "Postapocalypce4", "Pale")
@@ -239,26 +227,21 @@ def game():
         mouse_buttons = pygame.mouse.get_pressed()
         player.update(keys, dt, mouse_buttons, events)
         
-        # Update camera based on player position
         camera_x = max(0, player.world_x - WINDOW_WIDTH // 2)
         game_background.update(dt, camera_x)
-        
-        # Draw everything
+    
         screen.fill((0, 0, 0))
         game_background.draw(screen)
         
-        # Draw player
         player_screen_x = player.world_x - camera_x
         player_screen_y = player.world_y
         player_image = player.get_image()
         
-        # Debug: Draw a red border around player position (adjusted for new size)
         border_size = int(128 * player.scale)
         pygame.draw.rect(screen, (255, 0, 0), (player_screen_x-2, player_screen_y-2, border_size+4, border_size+4), 2)
         
         screen.blit(player_image, (player_screen_x, player_screen_y))
         
-        # Draw UI
         font = pygame.font.SysFont("Arial", 18)
         ui_info = [
             f"Position: {int(player.world_x)}, {int(player.world_y)}",
@@ -288,7 +271,6 @@ def menu():
     clock = pygame.time.Clock()
     running = True
     
-    # Load background layers
     menu_layers = []
     menu_speeds = [0.2, 0.4, 0.7, 1.0, 1.5, 2.0]
     MENU_BG_DIR = os.path.join(IMAGES_DIR, "Postapocalypce2", "Bright")
@@ -303,11 +285,9 @@ def menu():
     
     menu_background = Background(menu_layers, menu_speeds)
     
-    # Fonts
     title_font = pygame.font.SysFont("Times New Roman", 72, bold=True)
     option_font = pygame.font.SysFont("Arial", 50)
     
-    # Menu options
     selected_option = 0
     options = ["New Game", "Exit"]
 
@@ -330,24 +310,19 @@ def menu():
                 elif event.key == K_ESCAPE:
                     return "exit"
 
-        # Update background with parallax effect
         menu_background.update(dt, pygame.time.get_ticks() * 0.05)
         
-        # Draw everything
         screen.fill((0, 0, 0))
         menu_background.draw(screen)
         
-        # Draw title
         title_text = title_font.render("SURVIVE IF YOU CAN", True, (255, 255, 255))
         screen.blit(title_text, (WINDOW_WIDTH // 2 - title_text.get_width() // 2, 200))
         
-        # Draw menu options
         for i, option in enumerate(options):
             color = (255, 255, 0) if i == selected_option else (150, 150, 150)
             option_text = option_font.render(option, True, color)
             screen.blit(option_text, (WINDOW_WIDTH // 2 - option_text.get_width() // 2, 350 + i * 80))
         
-        # Draw instructions
         instruction_font = pygame.font.SysFont("Arial", 24)
         instructions = "Use UP/DOWN arrows to navigate, ENTER to select, ESC to exit"
         inst_text = instruction_font.render(instructions, True, (200, 200, 200))
