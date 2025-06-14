@@ -8,6 +8,7 @@ WINDOW_WIDTH = pygame.display.Info().current_w
 WINDOW_HEIGHT = pygame.display.Info().current_h
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN)
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Survive If You Can")
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -116,7 +117,6 @@ class Player:
             
         except Exception as e:
             print(f"Error loading sprites: {e}")
-            # Create a simple fallback
             fallback_surface = pygame.Surface((128, 128))
             fallback_surface.fill((255, 0, 0))  
             
@@ -140,7 +140,6 @@ class Player:
         is_moving = False
         is_running = False
         
-        # Handle events for attacks and actions
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 if event.button == 3 and self.current_state in ["idle", "walk", "run"]:  # Right mouse button
@@ -230,7 +229,6 @@ class Player:
             
             self.world_x += movement
             
-            # Determine movement animation state
             if is_moving:
                 if is_running:
                     self.current_state = "run"
@@ -238,11 +236,9 @@ class Player:
                     self.current_state = "walk"
             else:
                 self.current_state = "idle"
-        
-        # Keep player within bounds
-        self.world_y = max(375, min(self.world_y, 500))
-        
-        # Update current animation
+
+        self.world_y = max(266, min(self.world_y, 400))
+
         self.current_animation = self.animations[self.current_state]
         self.current_animation.update(dt)
         
@@ -279,7 +275,6 @@ class Zombie:
         self.facing_right = False
         self.current_state = "idle"
         
-        # Smaller hitbox for zombie
         hitbox_width = int(128 * self.scale * 0.3)
         hitbox_height = int(128 * self.scale * 0.4)
         self.rect = pygame.Rect(x, y, hitbox_width, hitbox_height)
@@ -290,9 +285,8 @@ class Zombie:
             idle_path = os.path.join(zombie_dir, "Idle.png")
             print(f"Loading zombie idle sprite from: {idle_path}")
             
-            # Zombie idle animation - 768x128 means 6 frames of 128x128 each
             self.animations = {
-                "idle": AnimatedSprite(idle_path, 128, 128, 6, 300),  # 6 frames, slower animation
+                "idle": AnimatedSprite(idle_path, 128, 128, 6, 300),  
             }
             
         except Exception as e:
