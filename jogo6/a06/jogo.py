@@ -83,7 +83,6 @@ class Player:
         self.jump_strength = -300
         self.horizontal_velocity = 0  # Para manter velocidade horizontal durante o pulo
         self.was_moving_when_jumped = False  # Para saber se estava se movendo quando pulou
-          # Player health and damage system
         self.max_health = 100
         self.health = self.max_health
         self.is_dead = False
@@ -99,11 +98,10 @@ class Player:
         self.is_reloading = False
     
         raider_dir = os.path.join(IMAGES_DIR, character)
-        
         try:
             idle_path = os.path.join(raider_dir, "Idle.png")
             print(f"Loading idle sprite from: {idle_path}")
-        
+            
             idle_sheet = pygame.image.load(idle_path).convert_alpha()
             print(f"Idle spritesheet size: {idle_sheet.get_size()}")
             self.animations = {
@@ -116,6 +114,7 @@ class Player:
                 "jump": AnimatedSprite(os.path.join(raider_dir, "Jump.png"), 128, 128, 11, 100),  # 1408x128 = 11 frames
                 "recharge": AnimatedSprite(os.path.join(raider_dir, "Recharge.png"), 128, 128, 12, 150),  # 1536x128 = 12 frames
                 "dead": AnimatedSprite(os.path.join(raider_dir, "Dead.png"), 128, 128, 4, 200),  # 512x128 = 4 frames
+                "hurt": AnimatedSprite(os.path.join(raider_dir, "Hurt.png"), 128, 128, 2, 150),  # 256x128 = 2 frames
             }
             
             fallback_surface = pygame.Surface((128, 128), pygame.SRCALPHA)
@@ -124,11 +123,10 @@ class Player:
             fallback_anim = AnimatedSprite.__new__(AnimatedSprite)
             fallback_anim.frames = [fallback_surface]
             fallback_anim.current_frame = 0
-            fallback_anim.frame_timer = 0
+            fallback_anim.frame_timer = 0            
             fallback_anim.frame_count = 1
             fallback_anim.frame_duration = 200
-            for anim_name in ["hurt"]:
-                self.animations[anim_name] = fallback_anim
+            # Não precisamos mais de fallback para hurt já que carregamos a animação real
             
         except Exception as e:
             print(f"Error loading sprites: {e}")
@@ -153,12 +151,11 @@ class Player:
         movement = 0
         is_moving = False
         is_running = False
-        
-        # Calculate current movement speed before processing events
+          # Calcular velocidade de movimento antes de processar eventos
         current_speed = self.run_speed if (keys[K_LSHIFT] or keys[K_RSHIFT]) else self.speed
         current_horizontal_velocity = 0
         
-        # Check current movement to capture for jumping
+        # Verificar movimento atual para capturar durante o pulo
         if keys[K_a] or keys[K_LEFT]:
             current_horizontal_velocity = -current_speed
             is_moving = True
@@ -166,41 +163,51 @@ class Player:
             current_horizontal_velocity = current_speed
             is_moving = True
             
-        # Update invulnerability timer
+        # Atualizar timer de invulnerabilidade
         if self.invulnerability_timer > 0:
             self.invulnerability_timer -= dt
-          # Update screen flash timer
+          # Atualizar timer de flash da tela
         if self.screen_flash_timer > 0:
             self.screen_flash_timer -= dt
-        
-        # If player is dead, don't process any input
+          # Se o jogador estiver morto, não processar nenhuma entrada
         if self.is_dead:
-            # Only update death animation if it's not complete
+            # Atualizar apenas animação de morte se não estiver completa
             if not self.death_animation_complete:
                 self.current_animation = self.animations[self.current_state]
-                self.current_animation.update(dt)
+                self.animation_timer += dt
+                
+                # Verificar se a animação de morte foi concluída
+                animation_duration = len(self.current_animation.frames) * self.current_animation.frame_duration
+                if self.animation_timer >= animation_duration:
+                    # Animação de morte completa - permanecer no último frame
+                    self.death_animation_complete = True
+                    self.current_animation.current_frame = len(self.current_animation.frames) - 1
+                    print("Animação de morte completa - permanecendo no último frame")
+                else:
+                    self.current_animation.update(dt)
             return movement
-        
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
-                if event.button == 3 and self.current_state in ["idle", "walk", "run"]:  # Right mouse button
+                if event.button == 3 and self.current_state in ["idle", "walk", "run"]:  # Botão direito do mouse
                     if self.attack_combo == 0:
                         self.current_state = "attack_1"
                         self.attack_combo = 1
+                        print("Attack_1 ativado!")
                     else:
                         self.current_state = "attack_2"
                         self.attack_combo = 0
+                        print("Attack_2 (coronhada) ativado!")
                     self.animation_timer = 0
                     self.animation_complete = False
                     self.current_animation.reset()
                 
-                elif event.button == 1 and self.current_state in ["idle", "walk", "run"] and self.current_ammo > 0 and not self.is_reloading:  # Left mouse button
+                elif event.button == 1 and self.current_state in ["idle", "walk", "run"] and self.current_ammo > 0 and not self.is_reloading:  # Botão esquerdo do mouse
                     self.current_state = "shot"
                     self.current_ammo -= 1
                     self.animation_timer = 0
                     self.animation_complete = False
                     self.current_animation.reset()
-                    print(f"Shot fired! Ammo remaining: {self.current_ammo}/{self.max_ammo}")
+                    print(f"Tiro disparado! Munição restante: {self.current_ammo}/{self.max_ammo}")
             
             if event.type == KEYDOWN:
                 if event.key == K_SPACE and self.current_state in ["idle", "walk", "run"] and not self.is_jumping:
@@ -218,25 +225,28 @@ class Player:
                     self.animation_timer = 0
                     self.animation_complete = False
                     self.current_animation.reset()
-                    print("Reloading...")
-          # Handle action animations
-        if self.current_state in ["attack_1", "attack_2", "shot", "recharge", "jump", "dead"]:
+                    print("Recarregando...")
+          # Gerenciar animações de ação
+        if self.current_state in ["attack_1", "attack_2", "shot", "recharge", "jump", "dead", "hurt"]:
             self.animation_timer += dt
             
             animation_duration = len(self.current_animation.frames) * self.current_animation.frame_duration
             if self.animation_timer >= animation_duration:
                 if self.current_state == "dead":
-                    # Death animation completed - stay on last frame
+                    # Animação de morte completa - permanecer no último frame
                     self.death_animation_complete = True
                     self.current_animation.current_frame = len(self.current_animation.frames) - 1
-                    return movement  # Don't change state, stay dead
+                    return movement  # Não mudar estado, permanecer morto
                 elif self.current_state == "jump":
                     self.is_jumping = False
-                    self.world_y = self.jump_start_y  # Reset to ground
+                    self.world_y = self.jump_start_y  # Resetar para o chão
                 elif self.current_state == "recharge":
                     self.current_ammo = self.max_ammo
                     self.is_reloading = False
-                    print(f"Reload complete! Ammo: {self.current_ammo}/{self.max_ammo}")
+                    print(f"Recarga completa! Munição: {self.current_ammo}/{self.max_ammo}")
+                elif self.current_state == "hurt":
+                    # Após animação de dano, voltar ao estado apropriado
+                    pass  # Continuará para o estado idle abaixo
                 self.current_state = "idle"
                 self.animation_complete = True
                 self.animation_timer = 0
@@ -271,7 +281,6 @@ class Player:
                 movement += current_speed * dt / 1000
                 self.facing_right = True
                 is_moving = True
-            
             if keys[K_w] or keys[K_UP]:
                 self.world_y -= current_speed * dt / 1000
                 is_moving = True
@@ -279,6 +288,7 @@ class Player:
             if keys[K_s] or keys[K_DOWN]:
                 self.world_y += current_speed * dt / 1000
                 is_moving = True
+                
             self.world_x += movement
             
             if is_moving:
@@ -287,21 +297,21 @@ class Player:
                 else:
                     self.current_state = "walk"
             else:
-                self.current_state = "idle"
-
+                self.current_state = "idle"        # Manter o jogador dentro dos limites do mundo
+        self.world_x = max(0, self.world_x)  # Não ir abaixo de x=0
         self.world_y = max(266, min(self.world_y, 400))
 
         self.current_animation = self.animations[self.current_state]
         self.current_animation.update(dt)
         return movement
-        
     def take_damage(self, damage):
-        """Make the player take damage"""
+        """Fazer o jogador receber dano"""
         if self.invulnerability_timer > 0 or self.is_dead:
             return False
+        
         self.health -= damage
         self.invulnerability_timer = self.invulnerability_duration
-        self.screen_flash_timer = self.screen_flash_duration  # Activate screen flash
+        self.screen_flash_timer = self.screen_flash_duration  # Ativar flash na tela
         
         if self.health <= 0:
             self.health = 0
@@ -309,11 +319,19 @@ class Player:
             self.current_state = "dead"
             self.animation_timer = 0
             self.animation_complete = False
+            self.death_animation_complete = False  # Certificar que a animação de morte vai rodar
+            self.current_animation = self.animations[self.current_state]  # Definir animação de morte
             self.current_animation.reset()
-            print("Player died!")
+            print("Jogador morreu!")
             return True
         else:
-            print(f"Player took {damage} damage! Health: {self.health}/{self.max_health}")
+            # Ativar animação de dano se não estiver morto
+            if self.current_state not in ["dead", "hurt"]:
+                self.current_state = "hurt"
+                self.animation_timer = 0
+                self.animation_complete = False
+                self.current_animation.reset()
+            print(f"Jogador recebeu {damage} de dano! Vida: {self.health}/{self.max_health}")
             return False
 
     def get_image(self):
@@ -339,7 +357,6 @@ class Player:
             return fallback
     
     def draw_health_bar(self, screen):
-        """Draw player health bar on screen"""
         bar_width = 200
         bar_height = 20
         bar_x = 20
@@ -361,18 +378,17 @@ class Player:
         health_text = f"HP: {self.health}/{self.max_health}"
         text_surface = font.render(health_text, True, (255, 255, 255))
         screen.blit(text_surface, (bar_x + bar_width + 10, bar_y + 2))
-    
     def draw_ammo_counter(self, screen):
-        """Draw ammo counter on screen"""
+        """Desenhar contador de munição na tela"""
         ammo_x = 20
         ammo_y = 50
         
         font = pygame.font.SysFont("Arial", 18)
-        ammo_text = f"Ammo: {self.current_ammo}/{self.max_ammo}"
+        ammo_text = f"Munição: {self.current_ammo}/{self.max_ammo}"
         if self.is_reloading:
-            ammo_text += " (Reloading...)"
+            ammo_text += " (Recarregando...)"
         elif self.current_ammo == 0:
-            ammo_text += " - Press R to reload"
+            ammo_text += " - Pressione R para recarregar"
         
         color = (255, 255, 255) if self.current_ammo > 0 else (255, 0, 0)
         text_surface = font.render(ammo_text, True, color)
@@ -392,7 +408,7 @@ class Zombie:
         self.world_x = x
         self.world_y = y
         self.scale = 2.5
-        self.speed = 120  # Increased speed from 50 to 120
+        self.speed = 180  # Aumentado de 120 para 180 - zumbis mais rápidos
         self.max_health = 100
         self.health = self.max_health
         self.facing_right = False
@@ -401,15 +417,23 @@ class Zombie:
         self.death_animation_complete = False  # Para controlar quando a animação de morte termina
         self.should_remove = False  # Para controlar quando remover o zumbi
         self.attack_timer = 0
-        self.attack_cooldown = 2000  # 2 seconds between attacks
-        self.attack_range = 80
+        self.attack_cooldown = 800  # Reduzido de 2000 para 800ms - ataques mais frequentes
+        self.attack_range = 120  # Aumentado de 80 para 120 - maior alcance de ataque
         self.attack_damage = 20
         self.animation_timer = 0
         self.animation_complete = True
+          # Hitbox menor para ataques corpo a corpo (melee)
+        melee_hitbox_width = int(128 * self.scale * 0.5)
+        melee_hitbox_height = int(128 * self.scale * 0.5)
+        self.melee_rect = pygame.Rect(x, y, melee_hitbox_width, melee_hitbox_height)
         
-        hitbox_width = int(128 * self.scale * 0.3)
-        hitbox_height = int(128 * self.scale * 0.4)
-        self.rect = pygame.Rect(x, y, hitbox_width, hitbox_height)
+        # Hitbox maior para ataques à distância (ranged/shot) - aumentada para melhor jogabilidade
+        ranged_hitbox_width = int(128 * self.scale * 1.2)  # Aumentado de 0.4 para 0.6
+        ranged_hitbox_height = int(128 * self.scale * 0.7)  # Aumentado de 0.5 para 0.7
+        self.ranged_rect = pygame.Rect(x, y, ranged_hitbox_width, ranged_hitbox_height)
+        
+        # Manter rect principal para compatibilidade (usar o melee como padrão)
+        self.rect = self.melee_rect
         
         zombie_dir = os.path.join(IMAGES_DIR, "Zombie_1")
         
@@ -479,32 +503,32 @@ class Zombie:
                     
                     # After attack animation, check if still in range
                     if distance <= self.attack_range:
-                        self.current_state = "idle"
+                        self.current_state = "idle"                    
                     else:
                         self.current_state = "walk"
-                self.animation_complete = True
+                        self.animation_complete = True
                 self.animation_timer = 0
-        
         else:
-            # Improved AI behavior - always pursue player aggressively without oscillation
+            # IA melhorada - perseguir o jogador agressivamente sem limitações
             distance_x = player.world_x - self.world_x
             distance_y = player.world_y - self.world_y
             total_distance = (distance_x**2 + distance_y**2)**0.5
             
+            # Sempre atacar quando estiver ao alcance e cooldown estiver pronto
             if total_distance <= self.attack_range and self.attack_timer >= self.attack_cooldown:
-                # Close enough to attack and cooldown is ready
+                # Próximo o suficiente para atacar e cooldown pronto
                 self.current_state = "attack"
                 self.attack_timer = 0
                 self.animation_timer = 0
                 self.animation_complete = False
                 self.current_animation.reset()
                 
-            elif total_distance > self.attack_range + 10:  # Add buffer to prevent oscillation
-                # Move towards player - simplified logic to prevent flickering
+            elif total_distance > self.attack_range:  # Buffer reduzido para ataques mais frequentes
+                # Mover em direção ao jogador - perseguição direta e agressiva
                 self.current_state = "walk"
                 
-                # Move in X direction towards player
-                if abs(distance_x) > 10:  # Minimum threshold to prevent jittering
+                # Movimento em X - direto ao jogador
+                if abs(distance_x) > 5:  # Limiar menor para movimento mais responsivo
                     if distance_x > 0:
                         self.world_x += self.speed * dt / 1000
                         self.facing_right = True
@@ -512,33 +536,40 @@ class Zombie:
                         self.world_x -= self.speed * dt / 1000
                         self.facing_right = False
                 
-                # Move in Y direction towards player
-                if abs(distance_y) > 10:  # Minimum threshold to prevent jittering
+                # Movimento em Y - direto ao jogador
+                if abs(distance_y) > 5:  # Limiar menor para movimento mais responsivo
                     if distance_y > 0:
                         self.world_y += self.speed * dt / 1000
-                    else:
-                        self.world_y -= self.speed * dt / 1000
-            else:
-                # Close to player but not attacking - stay idle and face player
+                    else:                        self.world_y -= self.speed * dt / 1000
+            else:                
+                # Próximo ao jogador mas ainda não atacando - ficar idle e virar para o jogador
                 self.current_state = "idle"
                 self.facing_right = distance_x > 0
-        
-        # Keep zombie within same Y bounds as player
+          
+        # Manter zumbi dentro dos mesmos limites Y que o jogador
         self.world_y = max(375, min(self.world_y, 500))
-        
-        # Update animation
+          # Atualizar animação - mas não atualizar se animação de morte estiver completa
         self.current_animation = self.animations[self.current_state]
-        self.current_animation.update(dt)
+        if not (self.is_dead and self.death_animation_complete):
+            self.current_animation.update(dt)
+              # Atualizar posições de ambas as hitboxes
+        # Hitbox melee (menor)
+        melee_offset_x = (int(128 * self.scale) - self.melee_rect.width) // 2
+        melee_offset_y = (int(128 * self.scale) - self.melee_rect.height) // 2
         
-        # Update hitbox position
-        hitbox_offset_x = (int(128 * self.scale) - self.rect.width) // 2
-        hitbox_offset_y = int(128 * self.scale) - self.rect.height - 20
+        self.melee_rect.x = self.world_x + melee_offset_x
+        self.melee_rect.y = self.world_y + melee_offset_y
+          # Hitbox à distância (maior)
+        ranged_offset_x = (int(128 * self.scale) - self.ranged_rect.width) // 2
+        ranged_offset_y = (int(128 * self.scale) - self.ranged_rect.height) // 2
         
-        self.rect.x = self.world_x + hitbox_offset_x
-        self.rect.y = self.world_y + hitbox_offset_y
+        self.ranged_rect.x = self.world_x + ranged_offset_x
+        self.ranged_rect.y = self.world_y + ranged_offset_y
+        
+        # Atualizar rect principal para usar hitbox melee por compatibilidade
+        self.rect = self.melee_rect
     
     def take_damage(self, damage):
-        """Make the zombie take damage and trigger hurt animation"""
         if self.is_dead or self.current_state == "dead":
             return False
         
@@ -647,8 +678,7 @@ class ZombieSpawner:
         for zombie in self.zombies:
             zombie_screen_x = zombie.world_x - camera_x
             zombie_screen_y = zombie.world_y
-            
-            # Only draw zombies that are on screen
+              # Only draw zombies that are on screen
             if -200 < zombie_screen_x < WINDOW_WIDTH + 200:
                 zombie_image = zombie.get_image()
                 screen.blit(zombie_image, (zombie_screen_x, zombie_screen_y))
@@ -661,86 +691,106 @@ class ZombieSpawner:
         attack_width = 80
         attack_height = 100
         attack_type = ""
-        
-        # Check for melee attacks (right mouse button - attack_1 and attack_2)
-        if player.current_state in ["attack_1", "attack_2"] and player.animation_timer < 600:  # Extended timing window
+          # Check for melee attacks (right mouse button - attack_1 and attack_2)
+        if player.current_state in ["attack_1", "attack_2"] and player.animation_timer < 1000:  # Janela maior para melee
             is_attacking = True
             attack_type = player.current_state
-            # Reduce range for melee attacks - coronhada needs to be very close
+            # Adjust range for melee attacks
             if player.current_state == "attack_2":  # Coronhada
-                attack_range = 60  # Much closer range for melee
-                attack_width = 60
+                attack_range = 90
+                attack_width = 80
             else:  # attack_1 
-                attack_range = 80
-                attack_width = 70
+                attack_range = 100
+                attack_width = 90
             print(f"Melee attack detected: {attack_type}, Timer: {player.animation_timer}")
+            
         # Check for shot attacks (left mouse button)  
-        elif player.current_state == "shot" and player.animation_timer < 500:  # Extended timing window
+        elif player.current_state == "shot" and player.animation_timer < 800:  # Janela maior para shot
             is_attacking = True
             attack_type = "shot"
             # Increase range for shot attacks
-            attack_range = 200
-            attack_width = 120
+            attack_range = 250
+            attack_width = 150
             print(f"Shot attack detected, Timer: {player.animation_timer}")
             
         if is_attacking:
-            # Create attack hitbox in front of player
+            # Create attack hitbox in front of player - IMPROVED positioning
             if player.facing_right:
-                attack_x = player.world_x + 40  # Closer to player
+                attack_x = player.world_x + 80  # Position attack closer to player
             else:
-                attack_x = player.world_x - attack_range + 20  # Closer to player
-            
-            attack_rect = pygame.Rect(attack_x, player.world_y + 30, attack_width, attack_height)
-            
+                attack_x = player.world_x - attack_range - 20  # Position attack in front when facing left
+              # Improved Y positioning to better match zombie height
+            if attack_type in ["attack_1", "attack_2"]:  # Melee attacks
+                # Melee attacks need better vertical coverage to match zombie hitbox
+                attack_y = player.world_y + 100  # Adjust to match zombie melee hitbox position
+                attack_height = 180  # Increase height for better coverage
+                attack_width = max(attack_width, 140)  # Ensure minimum width for melee
+            else:  # Shot attacks
+                attack_y = player.world_y + 60  # Keep shot positioning
+                
+            attack_rect = pygame.Rect(attack_x, attack_y, attack_width, attack_height)
             hit_count = 0
             for zombie in self.zombies:
-                if not zombie.is_dead and attack_rect.colliderect(zombie.rect):
-                    # Prevent multiple hits during same animation using larger frame windows
-                    hit_frame_id = f"{player.current_state}_{player.animation_timer // 150}"  # Larger frame windows
-                    if not hasattr(zombie, 'last_hit_frame') or zombie.last_hit_frame != hit_frame_id:
-                        zombie.last_hit_frame = hit_frame_id
-                        
-                        # Determine damage and knockback based on attack type
-                        if attack_type == "shot":
-                            damage = 30
-                            knockback_force = 80  # Knockback for shot
-                        elif attack_type == "attack_1":
-                            damage = 35
-                            knockback_force = 100  # Knockback for attack_1
-                        elif attack_type == "attack_2":
-                            damage = 50  # More damage for attack_2 (coronhada)
-                            knockback_force = 150  # Much stronger knockback for attack_2
-                        else:
-                            damage = 25  # Fallback
-                            knockback_force = 50
-                        
-                        print(f"HIT! {attack_type} hit zombie for {damage} damage! Knockback: {knockback_force}")
-                        zombie.take_damage(damage)
-                        hit_count += 1
-                        
-                        # Add knockback effect - push zombie away from player
-                        if player.facing_right:
-                            zombie.world_x += knockback_force
-                            print(f"Zombie knocked to the right by {knockback_force} pixels")
-                        else:
-                            zombie.world_x -= knockback_force
-                            print(f"Zombie knocked to the left by {knockback_force} pixels")
-                        
-                        # Special effect for attack_2 - additional upward knockback
-                        if attack_type == "attack_2":
-                            zombie.world_y -= 20  # Larger upward movement for attack_2
-                            print(f"Attack_2 special effect! Zombie knocked upward!")
+                if not zombie.is_dead:                    # Use appropriate hitbox based on attack type
+                    if attack_type in ["attack_1", "attack_2"]:  # Melee attacks use smaller hitbox
+                        target_hitbox = zombie.melee_rect
+                        hitbox_type = "melee"
+                    else:  # Ranged attacks (shot) use larger hitbox
+                        target_hitbox = zombie.ranged_rect
+                        hitbox_type = "ranged"
+                    
+                    if attack_rect.colliderect(target_hitbox):
+                        # Prevent multiple hits during same animation - mais permissivo
+                        hit_frame_id = f"{player.current_state}_{player.animation_timer // 300}"  # Frame windows maiores
+                        if not hasattr(zombie, 'last_hit_frame') or zombie.last_hit_frame != hit_frame_id:
+                            zombie.last_hit_frame = hit_frame_id
+                              # Determine damage based on attack type
+                            if attack_type == "shot":
+                                damage = 30
+                            elif attack_type == "attack_1":
+                                damage = 10  
+                            elif attack_type == "attack_2":
+                                damage = 10 
+                            else:
+                                damage = 0
+                            
+                            print(f"HIT! {attack_type} hit zombie {hitbox_type} hitbox for {damage} damage!")
+                            zombie_died = zombie.take_damage(damage)
+                            hit_count += 1
+                            
+                            # Apply knockback ONLY for melee attacks (attack_1 and attack_2)
+                            if attack_type in ["attack_1", "attack_2"]:
+                                knockback_force = 100 if attack_type == "attack_1" else 150  # Mais knockback para attack_2
+                                
+                                # Push zombie away from player
+                                if player.facing_right:
+                                    zombie.world_x += knockback_force
+                                    print(f"Zombie knocked to the right by {knockback_force} pixels")
+                                else:
+                                    zombie.world_x -= knockback_force
+                                    print(f"Zombie knocked to the left by {knockback_force} pixels")
+                                
+                                # Special effect for attack_2 - additional upward knockback
+                                if attack_type == "attack_2":
+                                    zombie.world_y -= 20  # Upward movement for attack_2
+                                    print(f"Attack_2 special effect! Zombie knocked upward!")
+                            
+                            # Shot attacks não causam knockback, apenas dano
+                            if attack_type == "shot":
+                                print(f"Shot hit - no knockback applied")
             
             if hit_count > 0:
                 print(f"Total zombies hit: {hit_count}")
             else:
-                print(f"Attack {attack_type} detected but no zombies hit")
-                # Debug: Print positions
+                print(f"Attack {attack_type} detected but no zombies hit")                # Debug: Print positions
                 print(f"Player pos: {player.world_x}, {player.world_y}")
                 print(f"Attack rect: {attack_rect}")
                 for zombie in self.zombies:
                     if not zombie.is_dead:
-                        print(f"Zombie pos: {zombie.world_x}, {zombie.world_y}, rect: {zombie.rect}")
+                        distance = abs(zombie.world_x - player.world_x)
+                        print(f"Zombie pos: {zombie.world_x}, {zombie.world_y}")
+                        print(f"  Melee rect: {zombie.melee_rect}, distance: {distance}")
+                        print(f"  Ranged rect: {zombie.ranged_rect}")
 
 def game(selected_character="Raider_1"):
     clock = pygame.time.Clock()
@@ -785,9 +835,29 @@ def game(selected_character="Raider_1"):
     
         screen.fill((0, 0, 0))
         game_background.draw(screen)
-        
-        # Draw zombies
+          # Draw zombies
         zombie_spawner.draw(screen, camera_x)
+          # Draw debug hitboxes (optional - remove later)
+        if True:  # Set to False to disable debug
+            for zombie in zombie_spawner.zombies:
+                if not zombie.is_dead:
+                    # Draw melee hitbox in red
+                    melee_rect_screen = pygame.Rect(
+                        zombie.melee_rect.x - camera_x, 
+                        zombie.melee_rect.y, 
+                        zombie.melee_rect.width, 
+                        zombie.melee_rect.height
+                    )
+                    pygame.draw.rect(screen, (255, 0, 0), melee_rect_screen, 2)  # Red for melee hitbox
+                    
+                    # Draw ranged hitbox in blue
+                    ranged_rect_screen = pygame.Rect(
+                        zombie.ranged_rect.x - camera_x, 
+                        zombie.ranged_rect.y, 
+                        zombie.ranged_rect.width, 
+                        zombie.ranged_rect.height
+                    )
+                    pygame.draw.rect(screen, (0, 0, 255), ranged_rect_screen, 2)  # Blue for ranged hitbox
         
         player_screen_x = player.world_x - camera_x
         player_screen_y = player.world_y
