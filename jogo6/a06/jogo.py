@@ -304,6 +304,7 @@ class Player:
         self.current_animation = self.animations[self.current_state]
         self.current_animation.update(dt)
         return movement
+        
     def take_damage(self, damage):
         """Fazer o jogador receber dano"""
         if self.invulnerability_timer > 0 or self.is_dead:
@@ -404,7 +405,7 @@ class Player:
             screen.blit(flash_surface, (0, 0))
 
 class Zombie:
-    def __init__(self, x, y):
+    def __init__(self, x, y, zombie_type="Zombie_1"):
         self.world_x = x
         self.world_y = y
         self.scale = 2.5
@@ -422,6 +423,7 @@ class Zombie:
         self.attack_damage = 20
         self.animation_timer = 0
         self.animation_complete = True
+        self.zombie_type = zombie_type  # Tipo do zumbi (Zombie_1, Zombie_2, etc.)
           # Hitbox menor para ataques corpo a corpo (melee)
         melee_hitbox_width = int(128 * self.scale * 0.5)
         melee_hitbox_height = int(128 * self.scale * 0.5)
@@ -435,16 +437,31 @@ class Zombie:
         # Manter rect principal para compatibilidade (usar o melee como padrão)
         self.rect = self.melee_rect
         
-        zombie_dir = os.path.join(IMAGES_DIR, "Zombie_1")
+        zombie_dir = os.path.join(IMAGES_DIR, zombie_type)
         
         try:
-            self.animations = {
-                "idle": AnimatedSprite(os.path.join(zombie_dir, "Idle.png"), 128, 128, 6, 300),
-                "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 10, 150),  # 1280x128 = 10 frames
-                "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 200),  # 640x128 = 5 frames
-                "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),  # 512x128 = 4 frames
-                "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),  # 640x128 = 5 frames
-            }
+            # Configurações específicas para cada tipo de zumbi
+            if zombie_type == "Zombie_1":
+                self.animations = {
+                    "idle": AnimatedSprite(os.path.join(zombie_dir, "Idle.png"), 128, 128, 6, 300),
+                    "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 10, 150),  # 1280x128 = 10 frames
+                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 200),  # 640x128 = 5 frames
+                    "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),  # 512x128 = 4 frames
+                    "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),  # 640x128 = 5 frames
+                }
+            elif zombie_type == "Zombie_2":
+                self.animations = {
+                    "idle": AnimatedSprite(os.path.join(zombie_dir, "Idle.png"), 128, 128, 6, 300),  # 768x128 = 6 frames
+                    "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 10, 150),  # 1280x128 = 10 frames
+                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 200),  # 640x128 = 5 frames
+                    "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),  # 512x128 = 4 frames
+                    "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),  # 640x128 = 5 frames
+                }
+                # Zombie_2 pode ter características diferentes
+                self.speed = 160  # Ligeiramente mais lento que Zombie_1
+                self.attack_damage = 25  # Mais dano que Zombie_1
+                self.max_health = 120  # Mais vida que Zombie_1
+                self.health = self.max_health
             
         except Exception as e:
             print(f"Error loading zombie sprites: {e}")
@@ -625,13 +642,29 @@ class Zombie:
         # Background (red)
         pygame.draw.rect(screen, (255, 0, 0), (bar_x, bar_y, bar_width, bar_height))
         
-        # Health (green)
+        # Health color based on zombie type
+        if self.zombie_type == "Zombie_1":
+            health_color = (0, 255, 0)  # Verde para Zombie_1
+        elif self.zombie_type == "Zombie_2":
+            health_color = (0, 255, 255)  # Ciano para Zombie_2
+        else:
+            health_color = (0, 255, 0)  # Verde padrão
+        
         health_percentage = self.health / self.max_health
         health_width = int(bar_width * health_percentage)
-        pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, health_width, bar_height))
+        pygame.draw.rect(screen, health_color, (bar_x, bar_y, health_width, bar_height))
         
         # Border
         pygame.draw.rect(screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 1)
+        
+        # Tipo do zumbi - pequeno texto acima da barra de vida
+        if hasattr(pygame, 'font') and pygame.font.get_init():
+            font = pygame.font.SysFont("Arial", 10)
+            type_text = self.zombie_type.replace("Zombie_", "Z")  # Z1, Z2, etc.
+            text_surface = font.render(type_text, True, (255, 255, 255))
+            text_x = bar_x + (bar_width - text_surface.get_width()) // 2
+            text_y = bar_y - 12
+            screen.blit(text_surface, (text_x, text_y))
 
 class ZombieSpawner:
     def __init__(self):
@@ -639,6 +672,7 @@ class ZombieSpawner:
         self.spawn_points = []
         self.last_spawn_x = 0
         self.spawn_distance = 800  # Distance between spawn points
+        self.zombie_types = ["Zombie_1", "Zombie_2"]  # Tipos disponíveis de zumbis
         
     def update(self, player, dt):
         # Check if we need to spawn more zombies
@@ -658,9 +692,13 @@ class ZombieSpawner:
                 # Check if there's already a zombie near this spawn point
                 zombie_exists = any(abs(zombie.world_x - spawn_x) < 100 for zombie in self.zombies)
                 if not zombie_exists:
-                    new_zombie = Zombie(spawn_x, spawn_y)
+                    # Escolher tipo de zumbi aleatoriamente
+                    import random
+                    zombie_type = random.choice(self.zombie_types)
+                    new_zombie = Zombie(spawn_x, spawn_y, zombie_type)
                     self.zombies.append(new_zombie)
                     self.spawn_points.remove(spawn_point)
+                    print(f"Spawned {zombie_type} at position ({spawn_x}, {spawn_y})")
           # Update all zombies
         for zombie in self.zombies[:]:
             zombie.update(dt, player)
@@ -682,6 +720,8 @@ class ZombieSpawner:
             if -200 < zombie_screen_x < WINDOW_WIDTH + 200:
                 zombie_image = zombie.get_image()
                 screen.blit(zombie_image, (zombie_screen_x, zombie_screen_y))
+                # Desenhar barra de vida do zumbi
+                zombie.draw_health_bar(screen, camera_x)
                 
     def check_player_attacks(self, player):
         """Check if player attacks hit any zombies"""
