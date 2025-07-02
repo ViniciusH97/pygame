@@ -66,7 +66,7 @@ class Player:
         self.world_y = y
         self.speed = 200
         self.run_speed = 350
-        self.scale = 3.0  
+        self.scale = 4
         hitbox_width = int(128 * self.scale * 0.2)
         hitbox_height = int(128 * self.scale * 0.4)
         self.rect = pygame.Rect(x, y, hitbox_width, hitbox_height)
@@ -88,9 +88,9 @@ class Player:
         self.is_dead = False
         self.death_animation_complete = False
         self.invulnerability_timer = 0
-        self.invulnerability_duration = 1000  # 1 second of invulnerability after taking damage
-        self.screen_flash_timer = 0  # Timer for screen flash effect
-        self.screen_flash_duration = 300  # Duration of screen flash in milliseconds
+        self.invulnerability_duration = 1000  
+        self.screen_flash_timer = 0  
+        self.screen_flash_duration = 300  
         
         # Ammunition system
         self.max_ammo = 5
@@ -108,13 +108,13 @@ class Player:
                 "idle": AnimatedSprite(idle_path, 128, 128, 6, 200),
                 "walk": AnimatedSprite(os.path.join(raider_dir, "Walk.png"), 128, 128, 8, 100),
                 "run": AnimatedSprite(os.path.join(raider_dir, "Run.png"), 128, 128, 8, 80),
-                "attack_1": AnimatedSprite(os.path.join(raider_dir, "Attack_1.png"), 128, 128, 6, 120),  # 768x128 = 6 frames
-                "attack_2": AnimatedSprite(os.path.join(raider_dir, "Attack_2.png"), 128, 128, 3, 120),  # 384x128 = 3 frames
-                "shot": AnimatedSprite(os.path.join(raider_dir, "Shot.png"), 128, 128, 12, 80),  # 1536x128 = 12 frames
-                "jump": AnimatedSprite(os.path.join(raider_dir, "Jump.png"), 128, 128, 11, 100),  # 1408x128 = 11 frames
-                "recharge": AnimatedSprite(os.path.join(raider_dir, "Recharge.png"), 128, 128, 12, 150),  # 1536x128 = 12 frames
-                "dead": AnimatedSprite(os.path.join(raider_dir, "Dead.png"), 128, 128, 4, 200),  # 512x128 = 4 frames
-                "hurt": AnimatedSprite(os.path.join(raider_dir, "Hurt.png"), 128, 128, 2, 150),  # 256x128 = 2 frames
+                "attack_1": AnimatedSprite(os.path.join(raider_dir, "Attack_1.png"), 128, 128, 6, 120),  
+                "attack_2": AnimatedSprite(os.path.join(raider_dir, "Attack_2.png"), 128, 128, 3, 120),  
+                "shot": AnimatedSprite(os.path.join(raider_dir, "Shot.png"), 128, 128, 12, 80),  
+                "jump": AnimatedSprite(os.path.join(raider_dir, "Jump.png"), 128, 128, 11, 100),  
+                "recharge": AnimatedSprite(os.path.join(raider_dir, "Recharge.png"), 128, 128, 12, 150),  
+                "dead": AnimatedSprite(os.path.join(raider_dir, "Dead.png"), 128, 128, 4, 200),  
+                "hurt": AnimatedSprite(os.path.join(raider_dir, "Hurt.png"), 128, 128, 2, 150),  
             }
             
             fallback_surface = pygame.Surface((128, 128), pygame.SRCALPHA)
@@ -126,7 +126,6 @@ class Player:
             fallback_anim.frame_timer = 0            
             fallback_anim.frame_count = 1
             fallback_anim.frame_duration = 200
-            # Não precisamos mais de fallback para hurt já que carregamos a animação real
             
         except Exception as e:
             print(f"Error loading sprites: {e}")
@@ -297,9 +296,9 @@ class Player:
                 else:
                     self.current_state = "walk"
             else:
-                self.current_state = "idle"        # Manter o jogador dentro dos limites do mundo
-        self.world_x = max(0, self.world_x)  # Não ir abaixo de x=0
-        self.world_y = max(380, min(self.world_y, 500))
+                self.current_state = "idle"       
+        self.world_x = max(0, self.world_x)
+        self.world_y = max(328, min(self.world_y, 500))
 
         self.current_animation = self.animations[self.current_state]
         self.current_animation.update(dt)
@@ -312,7 +311,7 @@ class Player:
         
         self.health -= damage
         self.invulnerability_timer = self.invulnerability_duration
-        self.screen_flash_timer = self.screen_flash_duration  # Ativar flash na tela
+        self.screen_flash_timer = self.screen_flash_duration  
         
         if self.health <= 0:
             self.health = 0
@@ -396,7 +395,6 @@ class Player:
         screen.blit(text_surface, (ammo_x, ammo_y))
 
     def draw_screen_flash(self, screen):
-        """Draw screen flash effect when player takes damage"""
         if self.screen_flash_timer > 0:
             # Create a red overlay that covers the entire screen
             flash_alpha = int(150 * (self.screen_flash_timer / self.screen_flash_duration))
@@ -408,8 +406,8 @@ class Zombie:
     def __init__(self, x, y, zombie_type="Zombie_1"):
         self.world_x = x
         self.world_y = y
-        self.scale = 2.5
-        self.speed = 180  # Aumentado de 120 para 180 - zumbis mais rápidos
+        self.scale = 3.5
+        self.speed = 200 
         self.max_health = 100
         self.health = self.max_health
         self.facing_right = False
@@ -419,7 +417,7 @@ class Zombie:
         self.should_remove = False  # Para controlar quando remover o zumbi
         self.attack_timer = 0
         self.attack_cooldown = 800  # Reduzido de 2000 para 800ms - ataques mais frequentes
-        self.attack_range = 120  # Aumentado de 80 para 120 - maior alcance de ataque
+        self.attack_range = 80  # Aumentado de 80 para 120 - maior alcance de ataque
         self.attack_damage = 20
         self.animation_timer = 0
         self.animation_complete = True
@@ -444,20 +442,20 @@ class Zombie:
             if zombie_type == "Zombie_1":
                 self.animations = {
                     "idle": AnimatedSprite(os.path.join(zombie_dir, "Idle.png"), 128, 128, 6, 300),
-                    "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 10, 150),  # 1280x128 = 10 frames
-                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 200),  # 640x128 = 5 frames
-                    "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),  # 512x128 = 4 frames
-                    "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),  # 640x128 = 5 frames
+                    "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 10, 150),  
+                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 200),  
+                    "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),  
+                    "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),  
                 }
             elif zombie_type == "Zombie_2":
                 self.animations = {
-                    "idle": AnimatedSprite(os.path.join(zombie_dir, "Idle.png"), 128, 128, 6, 300),  # 768x128 = 6 frames
-                    "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 10, 150),  # 1280x128 = 10 frames
-                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 200),  # 640x128 = 5 frames
-                    "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),  # 512x128 = 4 frames
-                    "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),  # 640x128 = 5 frames
+                    "idle": AnimatedSprite(os.path.join(zombie_dir, "Idle.png"), 128, 128, 6, 300),  
+                    "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 10, 150),  
+                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 200),  
+                    "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),  
+                    "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),
                 }
-                # Zombie_2 pode ter características diferentes
+                
                 self.speed = 160  # Ligeiramente mais lento que Zombie_1
                 self.attack_damage = 25  # Mais dano que Zombie_1
                 self.max_health = 120  # Mais vida que Zombie_1
@@ -467,7 +465,7 @@ class Zombie:
             print(f"Error loading zombie sprites: {e}")
             # Create a simple fallback
             fallback_surface = pygame.Surface((128, 128))
-            fallback_surface.fill((0, 150, 0))  # Green for zombie
+            fallback_surface.fill((0, 150, 0))  
             
             fallback_anim = AnimatedSprite.__new__(AnimatedSprite)
             fallback_anim.frames = [fallback_surface]
@@ -508,7 +506,7 @@ class Zombie:
                 elif self.current_state == "hurt":
                     # After hurt animation, go back to appropriate state
                     distance = abs(self.world_x - player.world_x)
-                    if distance <= self.attack_range + 50:  # Um pouco mais de distância para evitar oscilação
+                    if distance <= self.attack_range + 50:  
                         self.current_state = "idle"
                     else:
                         self.current_state = "walk"
@@ -545,7 +543,7 @@ class Zombie:
                 self.current_state = "walk"
                 
                 # Movimento em X - direto ao jogador
-                if abs(distance_x) > 5:  # Limiar menor para movimento mais responsivo
+                if abs(distance_x) > 5:  
                     if distance_x > 0:
                         self.world_x += self.speed * dt / 1000
                         self.facing_right = True
@@ -554,7 +552,7 @@ class Zombie:
                         self.facing_right = False
                 
                 # Movimento em Y - direto ao jogador
-                if abs(distance_y) > 5:  # Limiar menor para movimento mais responsivo
+                if abs(distance_y) > 5:  
                     if distance_y > 0:
                         self.world_y += self.speed * dt / 1000
                     else:                        self.world_y -= self.speed * dt / 1000
@@ -564,7 +562,7 @@ class Zombie:
                 self.facing_right = distance_x > 0
           
         # Manter zumbi dentro dos mesmos limites Y que o jogador
-        self.world_y = max(380, min(self.world_y, 500))
+        self.world_y = max(280, min(self.world_y, 600))
           # Atualizar animação - mas não atualizar se animação de morte estiver completa
         self.current_animation = self.animations[self.current_state]
         if not (self.is_dead and self.death_animation_complete):
@@ -599,14 +597,14 @@ class Zombie:
             self.animation_complete = False
             self.current_animation.reset()
             print(f"Zombie died!")
-            return True  # Zombie died
+            return True  
         else:
             self.current_state = "hurt"
             self.animation_timer = 0
             self.animation_complete = False
             self.current_animation.reset()            
             print(f"Zombie took {damage} damage! Health: {self.health}/{self.max_health}")
-            return False  # Zombie still alive
+            return False  
     
     def get_image(self):
         try:
@@ -629,7 +627,6 @@ class Zombie:
             return fallback
     
     def draw_health_bar(self, screen, camera_x):
-        """Draw health bar above zombie"""
         if self.is_dead or self.health <= 0:
             return
         
@@ -644,11 +641,11 @@ class Zombie:
         
         # Health color based on zombie type
         if self.zombie_type == "Zombie_1":
-            health_color = (0, 255, 0)  # Verde para Zombie_1
+            health_color = (0, 255, 0)
         elif self.zombie_type == "Zombie_2":
-            health_color = (0, 255, 255)  # Ciano para Zombie_2
+            health_color = (0, 255, 255) 
         else:
-            health_color = (0, 255, 0)  # Verde padrão
+            health_color = (0, 255, 0)  
         
         health_percentage = self.health / self.max_health
         health_width = int(bar_width * health_percentage)
@@ -682,7 +679,7 @@ class ZombieSpawner:
         while self.last_spawn_x < player_progress + 2000:  # Keep spawns 2000 units ahead
             self.last_spawn_x += self.spawn_distance
             # Random Y position within bounds - same as player limits
-            spawn_y = 380 + (500 - 380) * (hash(self.last_spawn_x) % 100) / 100
+            spawn_y = 280 + (600 - 280) * (hash(self.last_spawn_x) % 100) / 100
             self.spawn_points.append((self.last_spawn_x, spawn_y))
         
         # Spawn zombies from spawn points that are close to player
@@ -723,7 +720,6 @@ class ZombieSpawner:
                 zombie.draw_health_bar(screen, camera_x)
                 
     def check_player_attacks(self, player):
-        """Check if player attacks hit any zombies"""
         is_attacking = False
         attack_range = 120
         attack_width = 80
@@ -836,7 +832,7 @@ def game(selected_character="Raider_1"):
     game_layers = []
     game_speeds = [0.1, 0.3, 0.5, 0.7, 0.9, 1.0]
     GAME_BG_DIR = os.path.join(IMAGES_DIR, "Postapocalypce4", "Pale")
-    game_layer_files = ["bg.png", "rail&wall.png", "train.png", "columns&floor.png", "infopost&wires.png", "wires.png"]
+    game_layer_files = ["bg.png", "rail&wall.png", "train.png", "columns&floor.png", "wires.png"]
     
     for filename in game_layer_files:
         path = os.path.join(GAME_BG_DIR, filename)
@@ -846,7 +842,6 @@ def game(selected_character="Raider_1"):
             game_layers.append(img)
     
     game_background = Background(game_layers, game_speeds)
-    # Corrigir posição inicial do player para estar dentro dos limites (380-500)
     player = Player(100, 450, selected_character)
     zombie_spawner = ZombieSpawner()
     
