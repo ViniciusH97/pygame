@@ -716,22 +716,19 @@ class ZombieSpawner:
         for zombie in self.zombies:
             zombie_screen_x = zombie.world_x - camera_x
             zombie_screen_y = zombie.world_y
-              # Only draw zombies that are on screen
+
             if -200 < zombie_screen_x < WINDOW_WIDTH + 200:
                 zombie_image = zombie.get_image()
                 screen.blit(zombie_image, (zombie_screen_x, zombie_screen_y))
-                # Desenhar barra de vida do zumbi
                 zombie.draw_health_bar(screen, camera_x)
                 
     def check_player_attacks(self, player):
         """Check if player attacks hit any zombies"""
-        # Check if player is attacking and in the first few frames of animation
         is_attacking = False
         attack_range = 120
         attack_width = 80
         attack_height = 100
         attack_type = ""
-          # Check for melee attacks (right mouse button - attack_1 and attack_2)
         if player.current_state in ["attack_1", "attack_2"] and player.animation_timer < 1000:  # Janela maior para melee
             is_attacking = True
             attack_type = player.current_state
