@@ -299,7 +299,7 @@ class Player:
             else:
                 self.current_state = "idle"        # Manter o jogador dentro dos limites do mundo
         self.world_x = max(0, self.world_x)  # Não ir abaixo de x=0
-        self.world_y = max(266, min(self.world_y, 400))
+        self.world_y = max(380, min(self.world_y, 500))
 
         self.current_animation = self.animations[self.current_state]
         self.current_animation.update(dt)
@@ -564,7 +564,7 @@ class Zombie:
                 self.facing_right = distance_x > 0
           
         # Manter zumbi dentro dos mesmos limites Y que o jogador
-        self.world_y = max(375, min(self.world_y, 500))
+        self.world_y = max(380, min(self.world_y, 500))
           # Atualizar animação - mas não atualizar se animação de morte estiver completa
         self.current_animation = self.animations[self.current_state]
         if not (self.is_dead and self.death_animation_complete):
@@ -681,8 +681,8 @@ class ZombieSpawner:
         # Create spawn points ahead of player
         while self.last_spawn_x < player_progress + 2000:  # Keep spawns 2000 units ahead
             self.last_spawn_x += self.spawn_distance
-            # Random Y position within bounds
-            spawn_y = 375 + (500 - 375) * (hash(self.last_spawn_x) % 100) / 100
+            # Random Y position within bounds - same as player limits
+            spawn_y = 380 + (500 - 380) * (hash(self.last_spawn_x) % 100) / 100
             self.spawn_points.append((self.last_spawn_x, spawn_y))
         
         # Spawn zombies from spawn points that are close to player
@@ -849,6 +849,7 @@ def game(selected_character="Raider_1"):
             game_layers.append(img)
     
     game_background = Background(game_layers, game_speeds)
+    # Corrigir posição inicial do player para estar dentro dos limites (380-500)
     player = Player(100, 450, selected_character)
     zombie_spawner = ZombieSpawner()
     
