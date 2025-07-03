@@ -4,7 +4,6 @@ from pygame.locals import *
 from background import Background
 
 def create_menu_background():
-    """Create and return menu background"""
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
     IMAGES_DIR = os.path.join(BASE_DIR, "imagens")
     
@@ -76,14 +75,14 @@ def menu():
         main_title = title_font.render(title_text, True, (255, 255, 255))
         screen.blit(main_title, (window_width // 2 - main_title.get_width() // 2, title_y))
         
-        # Menu options positioned lower and with red selection color
+        # opções no menu e de cor no menu
         for i, option in enumerate(options):
             color = (255, 0, 0) if i == selected_option else (150, 150, 150)
             option_text = option_font.render(option, True, color)
             screen.blit(option_text, (window_width // 2 - option_text.get_width() // 2, 450 + i * 80))
         
         instruction_font = pygame.font.SysFont("Arial", 24)
-        instructions = "Use UP/DOWN arrows to navigate, ENTER to select, ESC to exit"
+        instructions = "Use as setinhas para CIMA/BAIXO para navegar pelas opções, Pressione ENTER para selecionar ou ESC para sair"
         inst_text = instruction_font.render(instructions, True, (200, 200, 200))
         screen.blit(inst_text, (window_width // 2 - inst_text.get_width() // 2, window_height - 100))
         

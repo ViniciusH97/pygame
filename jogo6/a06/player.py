@@ -193,18 +193,18 @@ class Player:
                     self.is_reloading = False
                     print(f"Recarga completa! Munição: {self.current_ammo}/{self.max_ammo}")
                 elif self.current_state == "hurt":
-                    # Após animação de dano, voltar ao estado apropriado
+                    # Após animação de dano, voltar ao estado de idle
                     pass  # Continuará para o estado idle abaixo
                 self.current_state = "idle"
                 self.animation_complete = True
                 self.animation_timer = 0
         
-        # Handle jumping physics
+        # física do pulo do player 
         if self.is_jumping:
             self.jump_velocity += self.gravity * dt / 1000
             self.world_y += self.jump_velocity * dt / 1000
             
-            # Land when back to ground level
+            # após o pulo ser realizado o personagem volta para a mesma posição
             if self.world_y >= self.jump_start_y:
                 self.world_y = self.jump_start_y
                 self.is_jumping = False
@@ -345,7 +345,6 @@ class Player:
         screen.blit(text_surface, (ammo_x, ammo_y))
 
     def draw_screen_flash(self, screen):
-        """Draw screen flash effect when player takes damage"""
         if self.screen_flash_timer > 0:
             # Create a red overlay that covers the entire screen
             window_width = screen.get_width()

@@ -7,17 +7,16 @@ class ZombieSpawner:
         self.zombies = []
         self.spawn_points = []
         self.last_spawn_x = 0
-        self.spawn_distance = 800  # Distance between spawn points
+        self.spawn_distance = 800  # Distancia do spawn dos zombis
         self.zombie_types = ["Zombie_1", "Zombie_2"]  # Tipos disponíveis de zumbis
         
     def update(self, player, dt):
-        # Check if we need to spawn more zombies
+        # verifica se precisa de mais zumbis
         player_progress = player.world_x
         
         # Create spawn points ahead of player
         while self.last_spawn_x < player_progress + 2000:  # Keep spawns 2000 units ahead
             self.last_spawn_x += self.spawn_distance
-            # Random Y position within bounds - same as player limits
             spawn_y = 328 + (500 - 328) * (hash(self.last_spawn_x) % 100) / 100
             self.spawn_points.append((self.last_spawn_x, spawn_y))
         
@@ -61,17 +60,17 @@ class ZombieSpawner:
                 zombie.draw_health_bar(screen, camera_x)
                 
     def check_player_attacks(self, player):
-        """Check if player attacks hit any zombies"""
         is_attacking = False
         attack_range = 120
         attack_width = 80
         attack_height = 100
         attack_type = ""
         
-        if player.current_state in ["attack_1", "attack_2"] and player.animation_timer < 1000:  # Janela maior para melee
+        if player.current_state in ["attack_1", "attack_2"] and player.animation_timer < 1000:  
             is_attacking = True
             attack_type = player.current_state
-            # Adjust range for melee attacks
+            
+            # ajuste do ataque 2 (coronhada)
             if player.current_state == "attack_2":  # Coronhada
                 attack_range = 90
                 attack_width = 80

@@ -6,8 +6,8 @@ class Zombie:
     def __init__(self, x, y, zombie_type="Zombie_1"):
         self.world_x = x
         self.world_y = y
-        self.scale = 3.5
-        self.speed = 200 
+        self.scale = 3.7
+        self.speed = 300
         self.max_health = 100
         self.health = self.max_health
         self.facing_right = False
@@ -28,9 +28,9 @@ class Zombie:
         melee_hitbox_height = int(128 * self.scale * 0.5)
         self.melee_rect = pygame.Rect(x, y, melee_hitbox_width, melee_hitbox_height)
         
-        # Hitbox maior para ataques à distância (ranged/shot) - aumentada para melhor jogabilidade
-        ranged_hitbox_width = int(128 * self.scale * 1.2)  # Aumentado de 0.4 para 0.6
-        ranged_hitbox_height = int(128 * self.scale * 0.7)  # Aumentado de 0.5 para 0.7
+        # Hitbox maior para ataques à distância (ranged/shot)
+        ranged_hitbox_width = int(128 * self.scale * 1.2)  
+        ranged_hitbox_height = int(128 * self.scale * 0.7)  
         self.ranged_rect = pygame.Rect(x, y, ranged_hitbox_width, ranged_hitbox_height)
         
         # Manter rect principal para compatibilidade (usar o melee como padrão)
@@ -51,6 +51,8 @@ class Zombie:
                     "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),  
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),  
                 }
+
+
             elif zombie_type == "Zombie_2":
                 self.animations = {
                     "idle": AnimatedSprite(os.path.join(zombie_dir, "Idle.png"), 128, 128, 6, 300),  
@@ -60,11 +62,11 @@ class Zombie:
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),
                 }
                 
-                self.speed = 160  # Ligeiramente mais lento que Zombie_1
-                self.attack_damage = 25  # Mais dano que Zombie_1
-                self.max_health = 120  # Mais vida que Zombie_1
+                self.speed = 200 # velocidade zombie 2
+                self.attack_damage = 25 # dano do zumbie 2
+                self.max_health = 130
                 self.health = self.max_health
-            
+
         except Exception as e:
             print(f"Error loading zombie sprites: {e}")
             # Create a simple fallback
@@ -239,7 +241,7 @@ class Zombie:
         if self.is_dead or self.health <= 0:
             return
         
-        # Health bar position
+        # posição da barrsa de vida
         bar_width = 60
         bar_height = 6
         bar_x = self.world_x - camera_x + (int(128 * self.scale) - bar_width) // 2
