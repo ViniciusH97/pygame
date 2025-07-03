@@ -91,7 +91,6 @@ def menu():
         pygame.display.flip()
 
 def instructions():
-    """Tela de instruções do jogo"""
     clock = pygame.time.Clock()
     running = True
     screen = pygame.display.get_surface()
@@ -121,7 +120,7 @@ def instructions():
         
         # Título
         title_text = "INSTRUÇÕES"
-        title_y = 100
+        title_y = 50
         
         # Efeito de borda no título
         for dx in [-2, -1, 0, 1, 2]:
@@ -132,6 +131,46 @@ def instructions():
         
         main_title = title_font.render(title_text, True, (255, 255, 255))
         screen.blit(main_title, (window_width // 2 - main_title.get_width() // 2, title_y))
+        
+        # Criar fundo de bloco de anotações
+        notepad_width = 900
+        notepad_height = 700
+        notepad_x = (window_width - notepad_width) // 2
+        notepad_y = 150
+        
+        # Sombra do bloco
+        shadow_offset = 8
+        shadow_rect = pygame.Rect(notepad_x + shadow_offset, notepad_y + shadow_offset, notepad_width, notepad_height)
+        pygame.draw.rect(screen, (50, 50, 50), shadow_rect)
+        
+        # Fundo principal do bloco (cor de papel amarelado)
+        notepad_rect = pygame.Rect(notepad_x, notepad_y, notepad_width, notepad_height)
+        pygame.draw.rect(screen, (245, 245, 220), notepad_rect)
+        
+        # Borda do bloco
+        pygame.draw.rect(screen, (180, 180, 160), notepad_rect, 3)
+        
+        # Linhas horizontais do caderno
+        line_spacing = 35
+        for i in range(int(notepad_height // line_spacing)):
+            line_y = notepad_y + 50 + i * line_spacing
+            if line_y < notepad_y + notepad_height - 30:
+                pygame.draw.line(screen, (200, 200, 200), 
+                               (notepad_x + 30, line_y), 
+                               (notepad_x + notepad_width - 30, line_y), 1)
+        
+        # Margem esquerda (linha vermelha)
+        margin_x = notepad_x + 80
+        pygame.draw.line(screen, (255, 150, 150), 
+                        (margin_x, notepad_y + 30), 
+                        (margin_x, notepad_y + notepad_height - 30), 2)
+        
+        # Furos do caderno (3 círculos na esquerda)
+        hole_x = notepad_x + 25
+        for i in range(3):
+            hole_y = notepad_y + 150 + i * 150
+            pygame.draw.circle(screen, (200, 200, 200), (hole_x, hole_y), 8)
+            pygame.draw.circle(screen, (220, 220, 220), (hole_x, hole_y), 6)
         
         # Instruções do jogo
         instructions_list = [
@@ -159,28 +198,43 @@ def instructions():
             "  ENTER ou ESC - Voltar"
         ]
         
-        start_y = 200
+        # Posicionar as instruções dentro do bloco de anotações
+        start_y = notepad_y + 40
         line_height = 30
+        text_x_offset = notepad_x + 100  # Posição após a margem vermelha
         
-        for i, instruction in enumerate(instructions_list):
-            if instruction.startswith("  "):  
-                color = (200, 200, 200)
-                font = small_font
-            elif instruction == "":
+        current_line = 0
+        for instruction in instructions_list:
+            if instruction == "":
+                current_line += 0.5  # Espaço menor para linhas vazias
                 continue
-            elif instruction.endswith(":"): 
-                color = (255, 255, 0)
+                
+            if instruction.startswith("  "):  # Instruções indentadas
+                color = (80, 80, 80)  # Cor mais escura para contraste com papel
+                font = small_font
+                text_x = text_x_offset + 30  # Mais indentado
+            elif instruction.endswith(":"):  # Títulos de seção
+                color = (180, 50, 50)  # Vermelho escuro
                 font = instruction_font
+                text_x = text_x_offset
+                current_line += 0.3  # Espaço extra antes dos títulos
             else:  # Texto normal
-                color = (255, 255, 255)
+                color = (60, 60, 60)  # Cinza escuro
                 font = instruction_font
+                text_x = text_x_offset
             
             text_surface = font.render(instruction, True, color)
-            screen.blit(text_surface, (window_width // 2 - text_surface.get_width() // 2, start_y + i * line_height))
+            text_y = start_y + current_line * line_height
+            
+            # Verificar se o texto ainda cabe no bloco
+            if text_y < notepad_y + notepad_height - 80:
+                screen.blit(text_surface, (text_x, text_y))
+            
+            current_line += 1
         
-        # Instrução para voltar
+        # Instrução para voltar (fora do bloco)
         back_text = "Pressione ESC ou ENTER para voltar ao menu"
-        back_surface = small_font.render(back_text, True, (150, 150, 150))
-        screen.blit(back_surface, (window_width // 2 - back_surface.get_width() // 2, window_height - 50))
+        back_surface = small_font.render(back_text, True, (200, 200, 200))
+        screen.blit(back_surface, (window_width // 2 - back_surface.get_width() // 2, notepad_y + notepad_height + 30))
         
         pygame.display.flip()
