@@ -62,21 +62,20 @@ def game(selected_character="Raider_1"):
         screen.fill((0, 0, 0))
         game_background.draw(screen)
         
-        # Draw zombies
+        # spawna os zumbie na tela
         zombie_spawner.draw(screen, camera_x)
         
-        # Draw debug hitboxes (optional - remove later)
-        if True:  # Set to False to disable debug
+        # plot os hitboxes na tela
+        if True:  
             for zombie in zombie_spawner.zombies:
                 if not zombie.is_dead:
-                    # Draw melee hitbox in red
                     melee_rect_screen = pygame.Rect(
                         zombie.melee_rect.x - camera_x, 
                         zombie.melee_rect.y, 
                         zombie.melee_rect.width, 
                         zombie.melee_rect.height
                     )
-                    pygame.draw.rect(screen, (255, 0, 0), melee_rect_screen, 2)  # Red for melee hitbox
+                    pygame.draw.rect(screen, (255, 0, 0), melee_rect_screen, 2)  # definição de cor vermelha
                     
                     # Draw ranged hitbox in blue
                     ranged_rect_screen = pygame.Rect(
@@ -85,7 +84,7 @@ def game(selected_character="Raider_1"):
                         zombie.ranged_rect.width, 
                         zombie.ranged_rect.height
                     )
-                    pygame.draw.rect(screen, (0, 0, 255), ranged_rect_screen, 2)  # Blue for ranged hitbox
+                    pygame.draw.rect(screen, (0, 0, 255), ranged_rect_screen, 2)  # definição de cor azul
         
         player_screen_x = player.world_x - camera_x
         player_screen_y = player.world_y
@@ -94,23 +93,23 @@ def game(selected_character="Raider_1"):
         if player.current_state == "shot":
             shot_offset = 70  # Pixels para frente durante o tiro
             if player.facing_right:
-                player_screen_x += shot_offset  # Move sprite para a direita
+                player_screen_x += shot_offset  
             else:
-                player_screen_x -= shot_offset  # Move sprite para a esquerda
+                player_screen_x -= shot_offset  
         
         player_image = player.get_image()
         
-        # Update hitbox position - center it on the character
+        
         hitbox_offset_x = (int(128 * player.scale) - player.rect.width) // 2
-        hitbox_offset_y = int(128 * player.scale) - player.rect.height - 20  # 20 pixels from bottom
+        hitbox_offset_y = int(128 * player.scale) - player.rect.height - 20  
         
         player.rect.x = player.world_x + hitbox_offset_x
         player.rect.y = player.world_y + hitbox_offset_y
         
-        # Draw player
+        # mostra o player na tela
         screen.blit(player_image, (player_screen_x, player_screen_y))
         
-        # Draw player health bar and ammo counter
+        # mostra a barra de vida e a munição do player
         player.draw_health_bar(screen)
         player.draw_ammo_counter(screen)
         
