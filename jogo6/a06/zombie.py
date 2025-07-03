@@ -68,8 +68,7 @@ class Zombie:
                 self.health = self.max_health
 
         except Exception as e:
-            print(f"Error loading zombie sprites: {e}")
-            # Create a simple fallback
+            # Caso a animação não seja encontrada, usar uma animação de fallback
             fallback_surface = pygame.Surface((128, 128))
             fallback_surface.fill((0, 150, 0))  
             

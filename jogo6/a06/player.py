@@ -8,13 +8,13 @@ class Player:
         self.world_x = x
         self.world_y = y
         self.speed = 200
-        self.run_speed = 350
+        self.run_speed = 400
         self.scale = 4
         hitbox_width = int(128 * self.scale * 0.2)
         hitbox_height = int(128 * self.scale * 0.4)
         self.rect = pygame.Rect(x, y, hitbox_width, hitbox_height)
         self.facing_right = True
-        self.attack_combo = 0  # 0 for attack_1, 1 for attack_2
+        self.attack_combo = 0 
         self.animation_timer = 0
         self.current_state = "idle"
         self.animation_complete = True
