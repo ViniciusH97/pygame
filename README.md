@@ -9,13 +9,17 @@ Um jogo de sobrevivência 2D desenvolvido em Python com Pygame.
 - Pygame
 
 ### Instalação
-1. Instale o Pygame:
+1. Instale o Python:
+```bash
+pip install python3 python3-pip
+```
+ 
+2. Instale o Pygame:
 ```bash
 pip install pygame
 ```
-ou instale pelo site oficial: https://www.python.org/
 
-2. Execute o jogo:
+3. Execute o jogo:
 ```bash
 python main.py
 ```
