@@ -40,7 +40,7 @@ chmod +x main.py
 
 ```
 a06/
-├── main.py              # Ponto de entrada principal
+├── main.py              # Classe principal
 ├── game.py              # Lógica principal do jogo
 ├── menu.py              # Sistema de menu
 ├── player.py            # Classe do jogador
