@@ -26,7 +26,7 @@ Para adicionar novos recursos:
 
 import pygame
 from pygame.locals import *
-from menu import menu
+from menu import menu, instructions
 from game import game
 
 def main():
@@ -37,11 +37,8 @@ def main():
     WINDOW_WIDTH = pygame.display.Info().current_w
     WINDOW_HEIGHT = pygame.display.Info().current_h
 
-    # Você pode escolher entre fullscreen ou janela
-    # Para fullscreen:
-    # screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN)
-    # Para janela:
-    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    # Definir em tela cheia
+    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN)
     
     pygame.display.set_caption("Survive If You Can")
 
@@ -54,6 +51,8 @@ def main():
                 current_state = menu()
             elif current_state == "game":
                 current_state = game("Raider_1")
+            elif current_state == "instructions":
+                current_state = instructions()
             elif current_state == "exit":
                 break
     except KeyboardInterrupt:

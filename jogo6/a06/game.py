@@ -129,18 +129,6 @@ def game(selected_character="Raider_1"):
             text = font.render(info, True, (255, 255, 255))
             screen.blit(text, (10, 80 + i * 20))
         
-        # Draw instructions
-        instructions = [
-            "WASD - Move, SHIFT - Run",
-            "Right Click - Attack, Left Click - Shoot",
-            "SPACE - Jump, R - Reload",
-            "ESC - Back to Menu"
-        ]
-        instruction_font = pygame.font.SysFont("Arial", 16)
-        for i, instruction in enumerate(instructions):
-            inst_text = instruction_font.render(instruction, True, (255, 255, 255))
-            screen.blit(inst_text, (10, 240 + i * 20))
-        
         # Check if player died
         if player.is_dead:
             death_font = pygame.font.SysFont("Impact", 80)

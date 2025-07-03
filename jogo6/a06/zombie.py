@@ -6,8 +6,8 @@ class Zombie:
     def __init__(self, x, y, zombie_type="Zombie_1"):
         self.world_x = x
         self.world_y = y
-        self.scale = 3.7
-        self.speed = 300
+        self.scale = 3.5
+        self.speed = 200
         self.max_health = 100
         self.health = self.max_health
         self.facing_right = False
@@ -62,7 +62,7 @@ class Zombie:
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),
                 }
                 
-                self.speed = 200 # velocidade zombie 2
+                self.speed = 500 # velocidade zombie 2
                 self.attack_damage = 25 # dano do zumbie 2
                 self.max_health = 130
                 self.health = self.max_health
