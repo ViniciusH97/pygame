@@ -39,6 +39,9 @@ class Player:
         self.max_ammo = 5
         self.current_ammo = self.max_ammo
         self.is_reloading = False
+        
+        # Movement tracking for zombie AI
+        self.last_movement = 0
     
         # Setup paths
         BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -239,6 +242,9 @@ class Player:
                 
             self.world_x += movement
             
+            # Rastrear movimento para IA dos zumbis
+            self.last_movement = movement
+            
             if is_moving:
                 if is_running:
                     self.current_state = "run"
@@ -247,7 +253,7 @@ class Player:
             else:
                 self.current_state = "idle"       
         self.world_x = max(0, self.world_x)
-        self.world_y = max(328, min(self.world_y, 500))
+        self.world_y = max(328, min(self.world_y, 530))
 
         self.current_animation = self.animations[self.current_state]
         self.current_animation.update(dt)

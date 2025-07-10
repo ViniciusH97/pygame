@@ -8,7 +8,7 @@ class ZombieSpawner:
         self.spawn_points = []
         self.last_spawn_x = 0
         self.spawn_distance = 800  # Distancia do spawn dos zombis
-        self.zombie_types = ["Zombie_1", "Zombie_2"]  # Tipos disponíveis de zumbis
+        self.zombie_types = ["Zombie_1", "Zombie_2", "Zombie_3", "Zombie_4"]  # Tipos disponíveis de zumbis
         
     def update(self, player, dt):
         # verifica se precisa de mais zumbis
@@ -17,7 +17,8 @@ class ZombieSpawner:
         # Create spawn points ahead of player
         while self.last_spawn_x < player_progress + 2000:  # Keep spawns 2000 units ahead
             self.last_spawn_x += self.spawn_distance
-            spawn_y = 328 + (500 - 328) * (hash(self.last_spawn_x) % 100) / 100
+            # Spawnar zumbis na mesma altura inicial do player (450) com variação
+            spawn_y = 400 + (530 - 400) * (hash(self.last_spawn_x) % 100) / 100
             self.spawn_points.append((self.last_spawn_x, spawn_y))
         
         # Spawn zombies from spawn points that are close to player
