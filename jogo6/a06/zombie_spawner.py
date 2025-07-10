@@ -7,7 +7,7 @@ class ZombieSpawner:
         self.zombies = []
         self.spawn_points = []
         self.last_spawn_x = 0
-        self.spawn_distance = 800  # Distancia do spawn dos zombis
+        self.spawn_distance = 800  
         self.zombie_types = ["Zombie_1", "Zombie_2", "Zombie_3", "Zombie_4"]  # Tipos disponíveis de zumbis
         
     def update(self, player, dt):
@@ -15,17 +15,14 @@ class ZombieSpawner:
         player_progress = player.world_x
         
         # Create spawn points ahead of player
-        while self.last_spawn_x < player_progress + 2000:  # Keep spawns 2000 units ahead
+        while self.last_spawn_x < player_progress + 2000:  
             self.last_spawn_x += self.spawn_distance
-            # Spawnar zumbis na mesma altura inicial do player (450) com variação
             spawn_y = 400 + (530 - 400) * (hash(self.last_spawn_x) % 100) / 100
             self.spawn_points.append((self.last_spawn_x, spawn_y))
         
-        # Spawn zombies from spawn points that are close to player
         for spawn_point in self.spawn_points[:]:
             spawn_x, spawn_y = spawn_point
             if abs(spawn_x - player_progress) < 1000 and spawn_x > player_progress - 500:
-                # Check if there's already a zombie near this spawn point
                 zombie_exists = any(abs(zombie.world_x - spawn_x) < 100 for zombie in self.zombies)
                 if not zombie_exists:
                     # Escolher tipo de zumbi aleatoriamente
@@ -35,19 +32,25 @@ class ZombieSpawner:
                     self.spawn_points.remove(spawn_point)
                     print(f"Spawned {zombie_type} at position ({spawn_x}, {spawn_y})")
                     
-        # Update all zombies
         for zombie in self.zombies[:]:
             zombie.update(dt, player)
             
-            # Remove zombies that are too far behind player (but keep dead bodies visible)
-            if zombie.world_x < player_progress - 2000:  # Increased distance for dead bodies
-                # Only remove if very far away or if it's been dead for a long time
+            # Remover zumbis que estão muito longe ou mortos há muito tempo
+            if zombie.world_x < player_progress - 2000:  
                 if zombie.is_dead:
                     zombie.death_timer = getattr(zombie, 'death_timer', 0) + dt
-                    if zombie.death_timer > 10000:  # 10 seconds after death before removal
+                    if zombie.death_timer > 10000:  # 10 segundos
                         self.zombies.remove(zombie)
+                        print(f"Removed dead zombie after 10 seconds to prevent system overload")
                 else:
                     self.zombies.remove(zombie)
+            
+            # Remover zumbis mortos após 10 segundos independente da posição
+            elif zombie.is_dead and zombie.death_animation_complete:
+                zombie.death_timer = getattr(zombie, 'death_timer', 0) + dt
+                if zombie.death_timer > 10000:  # 10 segundos
+                    self.zombies.remove(zombie)
+                    print(f"Removed dead zombie after 10 seconds to prevent system overload")
                     
     def draw(self, screen, camera_x):
         window_width = screen.get_width()

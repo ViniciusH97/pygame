@@ -15,21 +15,21 @@ class Zombie:
         self.world_x = x
         self.world_y = y
         self.scale = 3.5
-        self.speed = 250  # Aumentado de 200 para 250
+        self.speed = 250  
         self.max_health = 100
         self.health = self.max_health
         self.facing_right = False
         self.current_state = "idle"
         self.is_dead = False
-        self.death_animation_complete = False  # Para controlar quando a animação de morte termina
-        self.should_remove = False  
+        self.death_animation_complete = False  
+        self.death_timer = 0  # Timer para controlar quando remover o zumbi morto
         self.attack_timer = 0
         self.attack_cooldown = 500  
         self.attack_range = 80  
         self.attack_damage = 20
         self.animation_timer = 0
         self.animation_complete = True
-        self.zombie_type = zombie_type  # definição do tipo de zumbi
+        self.zombie_type = zombie_type 
         
         melee_hitbox_width = int(128 * self.scale * 0.5)
         melee_hitbox_height = int(128 * self.scale * 0.5)
@@ -141,8 +141,10 @@ class Zombie:
                 if self.current_state == "dead":
                     self.is_dead = True
                     self.death_animation_complete = True
+                    self.death_timer = 0  # Inicializar timer quando animação de morte termina
                     # Manter o último frame da animação de morte
                     self.current_animation.current_frame = len(self.current_animation.frames) - 1
+                    print(f"Zombie death animation complete - starting 10 second timer")
                     return
                 elif self.current_state == "hurt":
                     distance = abs(self.world_x - player.world_x)
@@ -327,7 +329,6 @@ class Zombie:
         health_width = int(bar_width * health_percentage)
         pygame.draw.rect(screen, health_color, (bar_x, bar_y, health_width, bar_height))
         
-        # Border
         pygame.draw.rect(screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 1)
 
         # Status de vida no zuombie
