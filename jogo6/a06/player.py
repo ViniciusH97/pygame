@@ -1,5 +1,6 @@
 import os
 import pygame
+import time
 from pygame.locals import *
 from animated_sprite import AnimatedSprite
 
@@ -42,6 +43,9 @@ class Player:
         
         # Movement tracking for zombie AI
         self.last_movement = 0
+        
+        # Sistema para rastrear ataques de múltiplos zumbis
+        self.zombie_attacks_received = {}  # {zombie_id: last_attack_time}
     
         # Setup paths
         BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -97,6 +101,19 @@ class Player:
                 self.current_animation = self.animations["idle"]
         
     def update(self, keys, dt, mouse_buttons, events):
+        # Limpeza periódica de ataques antigos (a cada 5 segundos)
+        current_time = time.time() * 1000
+        if not hasattr(self, '_last_cleanup_time'):
+            self._last_cleanup_time = current_time
+        
+        if current_time - self._last_cleanup_time > 5000:  # 5 segundos
+            # Remover ataques antigos (mais de 10 segundos)
+            old_attacks = [zombie_id for zombie_id, attack_time in self.zombie_attacks_received.items() 
+                          if current_time - attack_time > 10000]
+            for zombie_id in old_attacks:
+                del self.zombie_attacks_received[zombie_id]
+            self._last_cleanup_time = current_time
+        
         movement = 0
         is_moving = False
         is_running = False
@@ -253,19 +270,36 @@ class Player:
             else:
                 self.current_state = "idle"       
         self.world_x = max(0, self.world_x)
-        self.world_y = max(328, min(self.world_y, 530))
+        self.world_y = max(328, min(self.world_y, 550))
 
         self.current_animation = self.animations[self.current_state]
         self.current_animation.update(dt)
         return movement
         
-    def take_damage(self, damage):
-        """Fazer o jogador receber dano"""
-        if self.invulnerability_timer > 0 or self.is_dead:
+    def take_damage(self, damage, zombie_id=None):
+        """Fazer o jogador receber dano - modificado para permitir dano de múltiplos zumbis"""
+        if self.is_dead:
             return False
         
+        # Se zombie_id for fornecido, verificar se este zumbi específico pode causar dano
+        if zombie_id is not None:
+            current_time = time.time() * 1000
+            
+            # Verificar se este zumbi específico atacou recentemente
+            if (zombie_id in self.zombie_attacks_received and 
+                current_time - self.zombie_attacks_received[zombie_id] < 300):  # 300ms por zumbi - reduzido de 500ms
+                return False
+            
+            # Registrar o ataque deste zumbi
+            self.zombie_attacks_received[zombie_id] = current_time
+        else:
+            # Sistema antigo de invulnerabilidade para outros tipos de dano
+            if self.invulnerability_timer > 0:
+                return False
+            
+            self.invulnerability_timer = self.invulnerability_duration
+        
         self.health -= damage
-        self.invulnerability_timer = self.invulnerability_duration
         self.screen_flash_timer = self.screen_flash_duration  
         
         if self.health <= 0:
@@ -286,7 +320,9 @@ class Player:
                 self.animation_timer = 0
                 self.animation_complete = False
                 self.current_animation.reset()
-            print(f"Jogador recebeu {damage} de dano! Vida: {self.health}/{self.max_health}")
+            
+            zombie_info = f" (Zombie {zombie_id})" if zombie_id else ""
+            print(f"Jogador recebeu {damage} de dano{zombie_info}! Vida: {self.health}/{self.max_health}")
             return False
 
     def get_image(self):
