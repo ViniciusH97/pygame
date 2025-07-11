@@ -13,7 +13,7 @@ class Zombie:
         self.zombie_id = Zombie._id_counter
         
         self.world_x = x
-        self.world_y = y
+        self.world_y = max(328, min(y, 550))  # Force spawn within bounds
         self.scale = 3.5
         self.speed = 250  
         self.max_health = 100
@@ -33,11 +33,11 @@ class Zombie:
         
         melee_hitbox_width = int(128 * self.scale * 0.5)
         melee_hitbox_height = int(128 * self.scale * 0.5)
-        self.melee_rect = pygame.Rect(x, y, melee_hitbox_width, melee_hitbox_height)
+        self.melee_rect = pygame.Rect(x, max(328, min(y, 550)), melee_hitbox_width, melee_hitbox_height)
         
         ranged_hitbox_width = int(128 * self.scale * 1.2)  
         ranged_hitbox_height = int(128 * self.scale * 0.7)  
-        self.ranged_rect = pygame.Rect(x, y, ranged_hitbox_width, ranged_hitbox_height)
+        self.ranged_rect = pygame.Rect(x, max(328, min(y, 550)), ranged_hitbox_width, ranged_hitbox_height)
         
         self.rect = self.melee_rect
         
@@ -201,6 +201,8 @@ class Zombie:
                                 
                                 self.world_x += move_x
                                 self.world_y += move_y
+                                # Ensure zombie stays within map bounds
+                                self.world_y = max(328, min(self.world_y, 550))
                                 self.facing_right = move_x > 0
                         else:
                             self._move_directly_to_player(distance_x, distance_y, dt)
@@ -221,6 +223,8 @@ class Zombie:
                                 
                                 self.world_x += move_x
                                 self.world_y += move_y
+                                # Ensure zombie stays within map bounds
+                                self.world_y = max(328, min(self.world_y, 550))
                                 self.facing_right = move_x > 0
                         else:
                             # Zumbi está na frente ou lateral, movimento direto
@@ -354,3 +358,6 @@ class Zombie:
                 self.world_y += self.speed * dt / 1000
             else:
                 self.world_y -= self.speed * dt / 1000
+        
+        # Ensure zombie stays within map bounds after movement
+        self.world_y = max(328, min(self.world_y, 550))

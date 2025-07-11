@@ -2,6 +2,7 @@ import os
 import pygame
 from pygame.locals import *
 from background import Background
+from language_manager import language_manager
 
 def create_menu_background():
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -24,7 +25,7 @@ def create_menu_background():
     
     return Background(menu_layers, menu_speeds)
 
-def menu():
+def menu(display_manager=None):
     clock = pygame.time.Clock()
     running = True
     screen = pygame.display.get_surface()
@@ -37,7 +38,16 @@ def menu():
     option_font = pygame.font.SysFont("Impact", 70)
     
     selected_option = 0
-    options = ["Novo Jogo", "Tutorial", "Sair"]
+    
+    def get_menu_options():
+        return [
+            language_manager.get_text("play"),
+            language_manager.get_text("instructions"), 
+            language_manager.get_text("language"),
+            language_manager.get_text("exit")
+        ]
+    
+    options = get_menu_options()
 
     while running:
         dt = clock.tick(60)
@@ -46,16 +56,33 @@ def menu():
             if event.type == QUIT:
                 return "exit"
             if event.type == KEYDOWN:
-                if event.key == K_UP:
+                if event.key == K_F11 and display_manager:
+                    # Toggle fullscreen/windowed mode
+                    screen = display_manager.toggle_fullscreen()
+                    window_width = screen.get_width()
+                    window_height = screen.get_height()
+                    # Recreate background for new resolution
+                    menu_background = create_menu_background()
+                elif event.key == K_F10 and display_manager and not display_manager.is_fullscreen:
+                    # Cycle through windowed sizes (only in windowed mode)
+                    screen = display_manager.cycle_windowed_size()
+                    window_width = screen.get_width()
+                    window_height = screen.get_height()
+                    # Recreate background for new resolution
+                    menu_background = create_menu_background()
+                elif event.key == K_UP:
                     selected_option = (selected_option - 1) % len(options)
                 elif event.key == K_DOWN:
                     selected_option = (selected_option + 1) % len(options)
                 elif event.key == K_RETURN:
-                    if selected_option == 0:  
+                    if selected_option == 0:  # Jogar
                         return "game"
-                    elif selected_option == 1:  
+                    elif selected_option == 1:  # Instruções
                         return "instructions"
-                    elif selected_option == 2:  
+                    elif selected_option == 2:  # Idioma
+                        language_manager.toggle_language()
+                        options = get_menu_options()  # Atualizar opções do menu
+                    elif selected_option == 3:  # Sair
                         return "exit"
                 elif event.key == K_ESCAPE:
                     return "exit"
@@ -65,7 +92,7 @@ def menu():
         screen.fill((0, 0, 0))
         menu_background.draw(screen)
         
-        title_text = "SURVIVE IF YOU CAN"
+        title_text = language_manager.get_text("game_title")
         title_y = 200
         
         for dx in [-2, -1, 0, 1, 2]:
@@ -77,20 +104,40 @@ def menu():
         main_title = title_font.render(title_text, True, (255, 255, 255))
         screen.blit(main_title, (window_width // 2 - main_title.get_width() // 2, title_y))
         
-        # opções no menu e de cor no menu
+        # Mostrar idioma atual ao lado da opção de idioma
         for i, option in enumerate(options):
             color = (255, 0, 0) if i == selected_option else (150, 150, 150)
-            option_text = option_font.render(option, True, color)
+            if i == 2:  # Opção de idioma
+                current_lang = "PT" if language_manager.get_current_language() == "pt" else "EN"
+                option_text_full = f"{option} [{current_lang}]"
+            else:
+                option_text_full = option
+            option_text = option_font.render(option_text_full, True, color)
             screen.blit(option_text, (window_width // 2 - option_text.get_width() // 2, 450 + i * 80))
         
         instruction_font = pygame.font.SysFont("Arial", 24)
         instructions = "Use as setinhas para CIMA/BAIXO para navegar pelas opções, Pressione ENTER para selecionar ou ESC para sair"
         inst_text = instruction_font.render(instructions, True, (200, 200, 200))
-        screen.blit(inst_text, (window_width // 2 - inst_text.get_width() // 2, window_height - 100))
+        screen.blit(inst_text, (window_width // 2 - inst_text.get_width() // 2, window_height - 130))
+        
+        # Display resolution controls info
+        resolution_font = pygame.font.SysFont("Arial", 20)
+        if display_manager:
+            mode_text = f"Modo: {'Tela Cheia' if display_manager.is_fullscreen else 'Janela'} | Resolução: {window_width}x{window_height}"
+            controls_text = "F11: Alternar Tela Cheia/Janela | F10: Trocar Resolução (Modo Janela)"
+        else:
+            mode_text = f"Resolução: {window_width}x{window_height}"
+            controls_text = "Controles de resolução não disponíveis"
+        
+        mode_surface = resolution_font.render(mode_text, True, (150, 150, 150))
+        controls_surface = resolution_font.render(controls_text, True, (120, 120, 120))
+        
+        screen.blit(mode_surface, (window_width // 2 - mode_surface.get_width() // 2, window_height - 80))
+        screen.blit(controls_surface, (window_width // 2 - controls_surface.get_width() // 2, window_height - 50))
         
         pygame.display.flip()
 
-def instructions():
+def instructions(display_manager=None):
     clock = pygame.time.Clock()
     running = True
     screen = pygame.display.get_surface()
@@ -110,7 +157,21 @@ def instructions():
             if event.type == QUIT:
                 return "exit"
             if event.type == KEYDOWN:
-                if event.key == K_ESCAPE or event.key == K_RETURN:
+                if event.key == K_F11 and display_manager:
+                    # Toggle fullscreen/windowed mode
+                    screen = display_manager.toggle_fullscreen()
+                    window_width = screen.get_width()
+                    window_height = screen.get_height()
+                    # Recreate background for new resolution
+                    menu_background = create_menu_background()
+                elif event.key == K_F10 and display_manager and not display_manager.is_fullscreen:
+                    # Cycle through windowed sizes (only in windowed mode)
+                    screen = display_manager.cycle_windowed_size()
+                    window_width = screen.get_width()
+                    window_height = screen.get_height()
+                    # Recreate background for new resolution
+                    menu_background = create_menu_background()
+                elif event.key == K_ESCAPE or event.key == K_RETURN:
                     return "menu"
         
         menu_background.update(dt, pygame.time.get_ticks() * 0.05)
@@ -119,7 +180,7 @@ def instructions():
         menu_background.draw(screen)
         
         # Título
-        title_text = "INSTRUÇÕES"
+        title_text = language_manager.get_text("instructions_title")
         title_y = 50
         
         # Efeito de borda no título
@@ -174,28 +235,32 @@ def instructions():
         
         # Instruções do jogo
         instructions_list = [
-            "MOVIMENTAÇÃO:",
+            language_manager.get_text("controls"),
             "",
-            "  WASD ou Setas - Mover o personagem",
-            "  SHIFT - Correr",
-            "  SPACE - Pular",
+            "  " + language_manager.get_text("move"),
+            "  " + language_manager.get_text("run"),
+            "  " + language_manager.get_text("jump"),
             "",
             "COMBATE:",
             "",
-            "  Botão Direito do Mouse - Ataque corpo a corpo",
-            "  Botão Esquerdo do Mouse - Atirar",
-            "  R - Recarregar munição",
+            "  " + language_manager.get_text("attack2"),
+            "  " + language_manager.get_text("attack1"),
+            "  " + language_manager.get_text("reload"),
             "",
-            "OBJETIVO:",
+            language_manager.get_text("objective"),
             "",
-            "  Sobreviva o máximo possível aos ataques dos zumbis",
-            "  Elimine os zumbis para pontuar",
-            "  Cuidado com sua vida e munição!",
+            "  " + language_manager.get_text("survive"),
+            "  " + language_manager.get_text("kill_zombies"),
+            "  " + language_manager.get_text("collect_ammo"),
+            "",
+            "CONTROLES DE TELA:",
+            "",
+            "  F11 - Alternar entre Tela Cheia e Janela",
+            "  F10 - Trocar resolução (apenas no modo janela)",
             "",
             "CONTROLES DO MENU:",
             "",
-            "  ESC - Voltar ao menu principal",
-            "  ENTER ou ESC - Voltar"
+            "  " + language_manager.get_text("back_menu")
         ]
         
         # Posicionar as instruções dentro do bloco de anotações

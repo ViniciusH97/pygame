@@ -3,6 +3,7 @@ import pygame
 import time
 from pygame.locals import *
 from animated_sprite import AnimatedSprite
+from language_manager import language_manager
 
 class Player:
     def __init__(self, x, y, character="Raider_1"):
@@ -36,10 +37,18 @@ class Player:
         self.screen_flash_timer = 0  
         self.screen_flash_duration = 300  
         
-        # Ammunition system
-        self.max_ammo = 5
-        self.current_ammo = self.max_ammo
+        # Sistema de munição
+        self.max_ammo = 5  # Pente máximo
+        self.current_ammo = self.max_ammo  # Começa com pente cheio
+        self.max_reserve_ammo = 5  # Máximo na reserva
+        self.reserve_ammo = self.max_reserve_ammo  # Começa com reserva cheia
         self.is_reloading = False
+        
+        # Sistema de stamina
+        self.max_stamina = 100
+        self.current_stamina = self.max_stamina
+        self.stamina_regen_rate = 30  # Pontos por segundo
+        self.run_stamina_cost = 50  # Pontos por segundo ao correr
         
         # Movement tracking for zombie AI
         self.last_movement = 0
@@ -174,7 +183,7 @@ class Player:
                     self.animation_timer = 0
                     self.animation_complete = False
                     self.current_animation.reset()
-                    print(f"Tiro disparado! Munição restante: {self.current_ammo}/{self.max_ammo}")
+                    print(f"{language_manager.get_text('shot_fired')}: {self.current_ammo}/{self.max_ammo}")
             
             if event.type == KEYDOWN:
                 if event.key == K_SPACE and self.current_state in ["idle", "walk", "run"] and not self.is_jumping:
@@ -186,13 +195,19 @@ class Player:
                     self.animation_complete = False
                     self.current_animation.reset()
                 
-                elif event.key == K_r and self.current_state in ["idle", "walk", "run"] and self.current_ammo < self.max_ammo:
-                    self.current_state = "recharge"
-                    self.is_reloading = True
-                    self.animation_timer = 0
-                    self.animation_complete = False
-                    self.current_animation.reset()
-                    print("Recarregando...")
+                elif event.key == K_r and self.current_state in ["idle", "walk", "run"] and not self.is_reloading:
+                    # Sistema de recarga: transfere da reserva para o pente
+                    if self.reserve_ammo > 0 and self.current_ammo < self.max_ammo:
+                        self.is_reloading = True
+                        self.current_state = "recharge"
+                        self.animation_timer = 0
+                        self.animation_complete = False
+                        self.current_animation.reset()
+                        print(f"{language_manager.get_text('reloading')}: {self.current_ammo}/{self.max_ammo}, {language_manager.get_text('reserve_ammo')}: {self.reserve_ammo}")
+                    elif self.reserve_ammo == 0:
+                        print(language_manager.get_text("no_reserve_ammo"))
+                    else:
+                        print(language_manager.get_text("magazine_full"))
                     
         # Gerenciar animações de ação
         if self.current_state in ["attack_1", "attack_2", "shot", "recharge", "jump", "dead", "hurt"]:
@@ -209,9 +224,13 @@ class Player:
                     self.is_jumping = False
                     self.world_y = self.jump_start_y  # Resetar para o chão
                 elif self.current_state == "recharge":
-                    self.current_ammo = self.max_ammo
+                    # Finalizar recarga: transferir munição da reserva para o pente
+                    ammo_needed = self.max_ammo - self.current_ammo
+                    ammo_to_transfer = min(ammo_needed, self.reserve_ammo)
+                    self.current_ammo += ammo_to_transfer
+                    self.reserve_ammo -= ammo_to_transfer
                     self.is_reloading = False
-                    print(f"Recarga completa! Munição: {self.current_ammo}/{self.max_ammo}")
+                    print(f"{language_manager.get_text('reload_complete')}! {language_manager.get_text('magazine')}: {self.current_ammo}/{self.max_ammo}, {language_manager.get_text('reserve_ammo')}: {self.reserve_ammo}")
                 elif self.current_state == "hurt":
                     # Após animação de dano, voltar ao estado de idle
                     pass  # Continuará para o estado idle abaixo
@@ -231,10 +250,18 @@ class Player:
                 if self.current_state == "jump":
                     self.current_state = "idle"
         
+        # Gerenciar stamina
+        if is_running and is_moving and self.current_stamina > 0:
+            # Consumir stamina ao correr
+            self.current_stamina = max(0, self.current_stamina - self.run_stamina_cost * dt / 1000)
+        elif not is_running or not is_moving:
+            # Regenerar stamina quando não está correndo
+            self.current_stamina = min(self.max_stamina, self.current_stamina + self.stamina_regen_rate * dt / 1000)
+        
         # Handle movement only if not performing actions
         if self.current_state in ["idle", "walk", "run"]:
-            # Check if SHIFT is pressed for running
-            if keys[K_LSHIFT] or keys[K_RSHIFT]:
+            # Check if SHIFT is pressed for running and has stamina
+            if (keys[K_LSHIFT] or keys[K_RSHIFT]) and self.current_stamina > 0:
                 is_running = True
                 current_speed = self.run_speed
             else:
@@ -370,20 +397,55 @@ class Player:
         text_surface = font.render(health_text, True, (255, 255, 255))
         screen.blit(text_surface, (bar_x + bar_width + 10, bar_y + 2))
         
+    def draw_stamina_bar(self, screen):
+        """Desenhar barra de stamina abaixo da vida"""
+        bar_width = 200
+        bar_height = 15
+        bar_x = 20
+        bar_y = 50  # Abaixo da barra de vida
+        
+        # Background (azul escuro)
+        pygame.draw.rect(screen, (0, 0, 100), (bar_x, bar_y, bar_width, bar_height))
+        
+        # Stamina (azul claro)
+        stamina_percentage = self.current_stamina / self.max_stamina
+        stamina_width = int(bar_width * stamina_percentage)
+        pygame.draw.rect(screen, (0, 150, 255), (bar_x, bar_y, stamina_width, bar_height))
+        
+        # Border
+        pygame.draw.rect(screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2)
+        
+        # Stamina text
+        font = pygame.font.SysFont("Arial", 14)
+        stamina_text = f"STAMINA: {int(self.current_stamina)}"
+        text_surface = font.render(stamina_text, True, (255, 255, 255))
+        screen.blit(text_surface, (bar_x + bar_width + 10, bar_y + 1))
+        
     def draw_ammo_counter(self, screen):
-        """Desenhar contador de munição na tela"""
-        ammo_x = 20
-        ammo_y = 50
+        """Desenhar contador de munição no canto superior direito com fonte de pixel"""
+        window_width = screen.get_width()
         
-        font = pygame.font.SysFont("Arial", 18)
-        ammo_text = f"Munição: {self.current_ammo}/{self.max_ammo}"
+        # Usar fonte de pixel (monospace)
+        try:
+            font = pygame.font.Font(None, 36)  # Fonte padrão do sistema em tamanho pixel
+        except:
+            font = pygame.font.SysFont("Courier", 24)  # Fallback para fonte monospace
+        
+        ammo_text = f"AMMO: {self.current_ammo}/{self.reserve_ammo}"
+        
         if self.is_reloading:
-            ammo_text += " (Recarregando...)"
+            color = (255, 165, 0)  # Laranja para recarregando
         elif self.current_ammo == 0:
-            ammo_text += " - Pressione R para recarregar"
+            color = (255, 0, 0)    # Vermelho para sem munição
+        else:
+            color = (255, 255, 255)  # Branco normal
         
-        color = (255, 255, 255) if self.current_ammo > 0 else (255, 0, 0)
         text_surface = font.render(ammo_text, True, color)
+        
+        # Posicionar no canto superior direito
+        ammo_x = window_width - text_surface.get_width() - 20
+        ammo_y = 20
+        
         screen.blit(text_surface, (ammo_x, ammo_y))
 
     def draw_screen_flash(self, screen):

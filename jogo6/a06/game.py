@@ -4,6 +4,8 @@ from pygame.locals import *
 from background import Background
 from player import Player
 from zombie_spawner import ZombieSpawner
+from score_manager import ScoreManager
+from language_manager import language_manager
 
 def create_game_background():
     """Create and return game background"""
@@ -27,7 +29,7 @@ def create_game_background():
     
     return Background(game_layers, game_speeds)
 
-def game(selected_character="Raider_1"):
+def game(selected_character="Raider_1", display_manager=None):
     clock = pygame.time.Clock()
     running = True
     screen = pygame.display.get_surface()
@@ -37,6 +39,7 @@ def game(selected_character="Raider_1"):
     game_background = create_game_background()
     player = Player(100, 450, selected_character)
     zombie_spawner = ZombieSpawner()
+    score_manager = ScoreManager()
     
     while running:
         dt = clock.tick(60)
@@ -48,13 +51,28 @@ def game(selected_character="Raider_1"):
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     return "menu"
+                elif event.key == K_F11 and display_manager:
+                    # Toggle fullscreen/windowed mode
+                    screen = display_manager.toggle_fullscreen()
+                    window_width = screen.get_width()
+                    window_height = screen.get_height()
+                    # Recreate background for new resolution
+                    game_background = create_game_background()
+                elif event.key == K_F10 and display_manager and not display_manager.is_fullscreen:
+                    # Cycle through windowed sizes (only in windowed mode)
+                    screen = display_manager.cycle_windowed_size()
+                    window_width = screen.get_width()
+                    window_height = screen.get_height()
+                    # Recreate background for new resolution
+                    game_background = create_game_background()
                     
         keys = pygame.key.get_pressed()
         mouse_buttons = pygame.mouse.get_pressed()
         player.update(keys, dt, mouse_buttons, events)
         
+        score_manager.update(dt)
         zombie_spawner.update(player, dt)
-        zombie_spawner.check_player_attacks(player)
+        zombie_spawner.check_player_attacks(player, score_manager)
         
         camera_x = max(0, player.world_x - window_width // 2)
         game_background.update(dt, camera_x)
@@ -64,27 +82,6 @@ def game(selected_character="Raider_1"):
         
         # spawna os zumbie na tela
         zombie_spawner.draw(screen, camera_x)
-        
-        # plot os hitboxes na tela
-        if True:  
-            for zombie in zombie_spawner.zombies:
-                if not zombie.is_dead:
-                    melee_rect_screen = pygame.Rect(
-                        zombie.melee_rect.x - camera_x, 
-                        zombie.melee_rect.y, 
-                        zombie.melee_rect.width, 
-                        zombie.melee_rect.height
-                    )
-                    pygame.draw.rect(screen, (255, 0, 0), melee_rect_screen, 2)  # definição de cor vermelha
-                    
-                    # Draw ranged hitbox in blue
-                    ranged_rect_screen = pygame.Rect(
-                        zombie.ranged_rect.x - camera_x, 
-                        zombie.ranged_rect.y, 
-                        zombie.ranged_rect.width, 
-                        zombie.ranged_rect.height
-                    )
-                    pygame.draw.rect(screen, (0, 0, 255), ranged_rect_screen, 2)  # definição de cor azul
         
         player_screen_x = player.world_x - camera_x
         player_screen_y = player.world_y
@@ -109,35 +106,76 @@ def game(selected_character="Raider_1"):
         # mostra o player na tela
         screen.blit(player_image, (player_screen_x, player_screen_y))
         
-        # mostra a barra de vida e a munição do player
+        # mostra a barra de vida, stamina e a munição do player
         player.draw_health_bar(screen)
+        player.draw_stamina_bar(screen)
         player.draw_ammo_counter(screen)
         
-        # Draw UI info
-        font = pygame.font.SysFont("Arial", 18)
-        ui_info = [
-            f"Position: {int(player.world_x)}, {int(player.world_y)}",
-            f"State: {player.current_state}",
-            f"Facing: {'Right' if player.facing_right else 'Left'}",
-            f"Attack Combo: {player.attack_combo}",
-            f"Zombies: {len(zombie_spawner.zombies)}",
-            f"Jumping: {player.is_jumping}",
-            f"Health: {player.health}/{player.max_health}",
-            f"Invulnerable: {player.invulnerability_timer > 0}"
-        ]
-        for i, info in enumerate(ui_info):
-            text = font.render(info, True, (255, 255, 255))
-            screen.blit(text, (10, 80 + i * 20))
+        # Desenhar pontuação e tempo com fonte do menu
+        try:
+            score_font = pygame.font.SysFont("Impact", 35)  # Mesma fonte do menu, tamanho menor
+        except:
+            score_font = pygame.font.SysFont("Arial", 28)
+        
+        score_text = f"{language_manager.get_text('score')}: {score_manager.score}"
+        score_surface = score_font.render(score_text, True, (255, 255, 255))  # Branco
+        screen.blit(score_surface, (20, 75))  # Movido para baixo
+        
+        # Desenhar tempo sobrevivido
+        time_text = f"{language_manager.get_text('time')}: {score_manager.get_time_survived_formatted()}"
+        time_surface = score_font.render(time_text, True, (255, 255, 255))  # Branco
+        screen.blit(time_surface, (20, 110))  # Movido para baixo
         
         # Check if player died
         if player.is_dead:
-            death_font = pygame.font.SysFont("Impact", 80)
-            death_text = death_font.render("GAME OVER", True, (255, 0, 0))
-            death_rect = death_text.get_rect(center=(window_width // 2, window_height // 2))
+            # Parar a contagem do tempo
+            score_manager.set_game_over()
+            
+            # Criar fundo estático escuro para game over
+            overlay = pygame.Surface((window_width, window_height))
+            overlay.fill((0, 0, 0))
+            overlay.set_alpha(200)  # Semi-transparente
+            screen.blit(overlay, (0, 0))
+            
+            # Título Game Over
+            death_font = pygame.font.SysFont("Impact", 100)
+            death_text = death_font.render(language_manager.get_text("game_over"), True, (255, 0, 0))
+            death_rect = death_text.get_rect(center=(window_width // 2, window_height // 4))
             screen.blit(death_text, death_rect)
-            restart_font = pygame.font.SysFont("Arial", 24)
-            restart_text = restart_font.render("Press ESC to return to menu", True, (255, 255, 255))
-            restart_rect = restart_text.get_rect(center=(window_width // 2, window_height // 2 + 100))
+            
+            # Estatísticas finais
+            stats = score_manager.get_stats()
+            
+            try:
+                stats_font = pygame.font.SysFont("Impact", 50)  # Fonte do menu
+                small_font = pygame.font.SysFont("Impact", 35)
+            except:
+                stats_font = pygame.font.SysFont("Arial", 40)
+                small_font = pygame.font.SysFont("Arial", 28)
+            
+            # Pontuação final
+            final_score = stats_font.render(f"{language_manager.get_text('final_score')}: {stats['score']}", True, (255, 255, 0))
+            final_score_rect = final_score.get_rect(center=(window_width // 2, window_height // 2 - 60))
+            screen.blit(final_score, final_score_rect)
+            
+            # Estatísticas detalhadas
+            stats_y = window_height // 2 + 20
+            stats_list = [
+                f"{language_manager.get_text('zombies_killed')}: {stats['zombies_killed']}",
+                f"{language_manager.get_text('time_survived')}: {stats['time_survived']}",
+                f"{language_manager.get_text('points_per_zombie')}: 10",
+                f"{language_manager.get_text('points_per_minute')}: 5"
+            ]
+            
+            for i, stat in enumerate(stats_list):
+                stat_surface = small_font.render(stat, True, (255, 255, 255))
+                stat_rect = stat_surface.get_rect(center=(window_width // 2, stats_y + i * 40))
+                screen.blit(stat_surface, stat_rect)
+            
+            # Instruções
+            restart_font = pygame.font.SysFont("Impact", 24)
+            restart_text = restart_font.render(language_manager.get_text("press_esc"), True, (200, 200, 200))
+            restart_rect = restart_text.get_rect(center=(window_width // 2, window_height - 100))
             screen.blit(restart_text, restart_rect)
         
         # Draw screen flash effect when player takes damage

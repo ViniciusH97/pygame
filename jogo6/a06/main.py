@@ -29,17 +29,45 @@ from pygame.locals import *
 from menu import menu, instructions
 from game import game
 
+class DisplayManager:
+    def __init__(self):
+        self.is_fullscreen = True
+        self.windowed_sizes = [(1600, 900), (1920, 1080)]
+        self.current_windowed_size = 0
+        self.screen = None
+        
+    def toggle_fullscreen(self):
+        if self.is_fullscreen:
+            #muda para o modo janela
+            self.is_fullscreen = False
+            width, height = self.windowed_sizes[self.current_windowed_size]
+            self.screen = pygame.display.set_mode((width, height))
+        else:
+            self.is_fullscreen = True
+            self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        return self.screen
+    
+    def cycle_windowed_size(self):
+        if not self.is_fullscreen:
+            self.current_windowed_size = (self.current_windowed_size + 1) % len(self.windowed_sizes)
+            width, height = self.windowed_sizes[self.current_windowed_size]
+            self.screen = pygame.display.set_mode((width, height))
+        return self.screen
+    
+    def get_screen(self):
+        return self.screen
+    
+    def initialize_display(self):
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        return self.screen
+
+display_manager = DisplayManager()
+
 def main():
-    """Função principal do jogo"""
     pygame.init()
 
-    # Configurar tela
-    WINDOW_WIDTH = pygame.display.Info().current_w
-    WINDOW_HEIGHT = pygame.display.Info().current_h
-
-    # Definir em tela cheia
-    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN)
-    
+    # Configurar tela inicial em fullscreen
+    screen = display_manager.initialize_display()
     pygame.display.set_caption("Survive If You Can")
 
     # Loop principal do jogo
@@ -48,11 +76,11 @@ def main():
     try:
         while True:
             if current_state == "menu":
-                current_state = menu()
+                current_state = menu(display_manager)
             elif current_state == "game":
-                current_state = game("Raider_1")
+                current_state = game("Raider_1", display_manager)
             elif current_state == "instructions":
-                current_state = instructions()
+                current_state = instructions(display_manager)
             elif current_state == "exit":
                 break
     except KeyboardInterrupt:

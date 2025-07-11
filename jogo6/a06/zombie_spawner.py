@@ -1,6 +1,8 @@
 import pygame
 import random
 from zombie import Zombie
+from ammo_pickup import AmmoPickup
+from language_manager import language_manager
 
 class ZombieSpawner:
     def __init__(self):
@@ -9,6 +11,7 @@ class ZombieSpawner:
         self.last_spawn_x = 0
         self.spawn_distance = 800  
         self.zombie_types = ["Zombie_1", "Zombie_2", "Zombie_3", "Zombie_4"]  # Tipos disponíveis de zumbis
+        self.ammo_pickups = []  # Lista de munições no mapa
         
     def update(self, player, dt):
         # verifica se precisa de mais zumbis
@@ -17,8 +20,12 @@ class ZombieSpawner:
         # Create spawn points ahead of player
         while self.last_spawn_x < player_progress + 2000:  
             self.last_spawn_x += self.spawn_distance
-            spawn_y = 400 + (530 - 400) * (hash(self.last_spawn_x) % 100) / 100
+            # Spawn zombies at the same Y position as the player, but ensure it's within valid bounds
+            spawn_y = max(328, min(player.world_y, 550))  # Keep within map bounds
             self.spawn_points.append((self.last_spawn_x, spawn_y))
+        
+        # Clean up any existing spawn points that are outside bounds
+        self.spawn_points = [(x, max(328, min(y, 550))) for x, y in self.spawn_points]
         
         for spawn_point in self.spawn_points[:]:
             spawn_x, spawn_y = spawn_point
@@ -30,12 +37,14 @@ class ZombieSpawner:
                     new_zombie = Zombie(spawn_x, spawn_y, zombie_type)
                     self.zombies.append(new_zombie)
                     self.spawn_points.remove(spawn_point)
-                    print(f"Spawned {zombie_type} at position ({spawn_x}, {spawn_y})")
+                    print(f"{language_manager.get_text('zombie_spawned')} {zombie_type} at position ({spawn_x}, {spawn_y})")
                     
         for zombie in self.zombies[:]:
             zombie.update(dt, player)
             
-            # Remover zumbis que estão muito longe ou mortos há muito tempo
+            # Force all zombies to stay within bounds every frame
+            zombie.world_y = max(328, min(zombie.world_y, 550))
+            
             if zombie.world_x < player_progress - 2000:  
                 if zombie.is_dead:
                     zombie.death_timer = getattr(zombie, 'death_timer', 0) + dt
@@ -51,9 +60,37 @@ class ZombieSpawner:
                 if zombie.death_timer > 10000:  # 10 segundos
                     self.zombies.remove(zombie)
                     print(f"Removed dead zombie after 10 seconds to prevent system overload")
+        
+        # Atualizar munições
+        for ammo in self.ammo_pickups[:]:
+            ammo.update(dt)
+            if ammo.check_collision(player):
+                self.ammo_pickups.remove(ammo)
+                print(f"Player coletou munição! Munição atual: {player.current_ammo}")
+        
+        # Debug: mostrar quantas munições estão no mapa
+        if len(self.ammo_pickups) > 0:
+            print(f"Munições ativas no mapa: {len(self.ammo_pickups)}")
+        
+        # Remover munições muito longe do player
+        self.ammo_pickups = [ammo for ammo in self.ammo_pickups 
+                            if not ammo.collected and abs(ammo.world_x - player_progress) < 2000]
+    
+    def spawn_ammo_pickup(self, zombie_x, zombie_y):
+        """Spawnar munição quando um zumbi morrer"""
+        # 60% de chance de spawnar munição (aumentada para testar)
+        if random.randint(1, 100) <= 60:
+            # Spawnar munição no chão, na mesma altura do player
+            ammo_x = zombie_x + 30  # Pequeno offset para não ficar exatamente em cima
+            ammo_y = 530  # Posição fixa no chão onde o player anda
+            new_ammo = AmmoPickup(ammo_x, ammo_y)
+            self.ammo_pickups.append(new_ammo)
+            print(f"*** {language_manager.get_text('ammo_spawned')} *** em ({ammo_x}, {ammo_y}) após morte do zumbi em ({zombie_x}, {zombie_y})")
                     
     def draw(self, screen, camera_x):
         window_width = screen.get_width()
+        
+        # Desenhar zumbis
         for zombie in self.zombies:
             zombie_screen_x = zombie.world_x - camera_x
             zombie_screen_y = zombie.world_y
@@ -61,9 +98,12 @@ class ZombieSpawner:
             if -200 < zombie_screen_x < window_width + 200:
                 zombie_image = zombie.get_image()
                 screen.blit(zombie_image, (zombie_screen_x, zombie_screen_y))
-                zombie.draw_health_bar(screen, camera_x)
+        
+        # Desenhar munições
+        for ammo in self.ammo_pickups:
+            ammo.draw(screen, camera_x)
                 
-    def check_player_attacks(self, player):
+    def check_player_attacks(self, player, score_manager=None):
         is_attacking = False
         attack_range = 120
         attack_width = 80
@@ -148,6 +188,11 @@ class ZombieSpawner:
                             print(f"HIT! {attack_type} hit zombie {hitbox_type} hitbox for {damage} damage!")
                             zombie_died = zombie.take_damage(damage)
                             hit_count += 1
+                            
+                            # Se o zumbi morreu, adicionar pontos e chance de spawnar munição
+                            if zombie_died and score_manager:
+                                score_manager.add_zombie_kill()
+                                self.spawn_ammo_pickup(zombie.world_x, zombie.world_y)
                             
                             # Apply knockback ONLY for melee attacks (attack_1 and attack_2)
                             if attack_type in ["attack_1", "attack_2"]:
