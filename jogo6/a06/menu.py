@@ -2,7 +2,6 @@ import os
 import pygame
 from pygame.locals import *
 from background import Background
-from language_manager import language_manager
 
 def create_menu_background():
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -38,16 +37,7 @@ def menu(display_manager=None):
     option_font = pygame.font.SysFont("Impact", 70)
     
     selected_option = 0
-    
-    def get_menu_options():
-        return [
-            language_manager.get_text("play"),
-            language_manager.get_text("instructions"), 
-            language_manager.get_text("language"),
-            language_manager.get_text("exit")
-        ]
-    
-    options = get_menu_options()
+    options = ["JOGAR", "INSTRUÇÕES", "SAIR"]
 
     while running:
         dt = clock.tick(60)
@@ -79,10 +69,7 @@ def menu(display_manager=None):
                         return "game"
                     elif selected_option == 1:  # Instruções
                         return "instructions"
-                    elif selected_option == 2:  # Idioma
-                        language_manager.toggle_language()
-                        options = get_menu_options()  # Atualizar opções do menu
-                    elif selected_option == 3:  # Sair
+                    elif selected_option == 2:  # Sair
                         return "exit"
                 elif event.key == K_ESCAPE:
                     return "exit"
@@ -92,7 +79,7 @@ def menu(display_manager=None):
         screen.fill((0, 0, 0))
         menu_background.draw(screen)
         
-        title_text = language_manager.get_text("game_title")
+        title_text = "SURVIVE IF YOU CAN"
         title_y = 200
         
         for dx in [-2, -1, 0, 1, 2]:
@@ -104,15 +91,10 @@ def menu(display_manager=None):
         main_title = title_font.render(title_text, True, (255, 255, 255))
         screen.blit(main_title, (window_width // 2 - main_title.get_width() // 2, title_y))
         
-        # Mostrar idioma atual ao lado da opção de idioma
+        # Opções no menu
         for i, option in enumerate(options):
             color = (255, 0, 0) if i == selected_option else (150, 150, 150)
-            if i == 2:  # Opção de idioma
-                current_lang = "PT" if language_manager.get_current_language() == "pt" else "EN"
-                option_text_full = f"{option} [{current_lang}]"
-            else:
-                option_text_full = option
-            option_text = option_font.render(option_text_full, True, color)
+            option_text = option_font.render(option, True, color)
             screen.blit(option_text, (window_width // 2 - option_text.get_width() // 2, 450 + i * 80))
         
         instruction_font = pygame.font.SysFont("Arial", 24)
@@ -180,7 +162,7 @@ def instructions(display_manager=None):
         menu_background.draw(screen)
         
         # Título
-        title_text = language_manager.get_text("instructions_title")
+        title_text = "INSTRUÇÕES"
         title_y = 50
         
         # Efeito de borda no título
@@ -235,23 +217,23 @@ def instructions(display_manager=None):
         
         # Instruções do jogo
         instructions_list = [
-            language_manager.get_text("controls"),
+            "CONTROLES:",
             "",
-            "  " + language_manager.get_text("move"),
-            "  " + language_manager.get_text("run"),
-            "  " + language_manager.get_text("jump"),
+            "  A/D ou Setas - Mover",
+            "  SHIFT - Correr (gasta stamina)",
+            "  ESPAÇO - Pular",
             "",
             "COMBATE:",
             "",
-            "  " + language_manager.get_text("attack2"),
-            "  " + language_manager.get_text("attack1"),
-            "  " + language_manager.get_text("reload"),
+            "  Clique Direito - Ataque corpo a corpo",
+            "  Clique Esquerdo - Tiro (gasta munição)",
+            "  R - Recarregar",
             "",
-            language_manager.get_text("objective"),
+            "OBJETIVO:",
             "",
-            "  " + language_manager.get_text("survive"),
-            "  " + language_manager.get_text("kill_zombies"),
-            "  " + language_manager.get_text("collect_ammo"),
+            "  Sobreviva o máximo possível!",
+            "  Mate zumbis para ganhar pontos",
+            "  Colete munição dos zumbis mortos",
             "",
             "CONTROLES DE TELA:",
             "",
@@ -260,7 +242,7 @@ def instructions(display_manager=None):
             "",
             "CONTROLES DO MENU:",
             "",
-            "  " + language_manager.get_text("back_menu")
+            "  Pressione ESC para voltar ao menu"
         ]
         
         # Posicionar as instruções dentro do bloco de anotações

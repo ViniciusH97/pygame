@@ -3,7 +3,6 @@ import pygame
 import time
 from pygame.locals import *
 from animated_sprite import AnimatedSprite
-from language_manager import language_manager
 
 class Player:
     def __init__(self, x, y, character="Raider_1"):
@@ -47,14 +46,13 @@ class Player:
         # Sistema de stamina
         self.max_stamina = 100
         self.current_stamina = self.max_stamina
-        self.stamina_regen_rate = 30  # Pontos por segundo
-        self.run_stamina_cost = 50  # Pontos por segundo ao correr
+        self.stamina_regen_rate = 20  # Reduzido de 30 para 20 pontos por segundo
+        self.run_stamina_cost = 35  # Reduzido de 50 para 35 pontos por segundo ao correr
         
         # Movement tracking for zombie AI
         self.last_movement = 0
         
-        # Sistema para rastrear ataques de múltiplos zumbis
-        self.zombie_attacks_received = {}  # {zombie_id: last_attack_time}
+        self.zombie_attacks_received = {} 
     
         # Setup paths
         BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -110,13 +108,11 @@ class Player:
                 self.current_animation = self.animations["idle"]
         
     def update(self, keys, dt, mouse_buttons, events):
-        # Limpeza periódica de ataques antigos (a cada 5 segundos)
         current_time = time.time() * 1000
         if not hasattr(self, '_last_cleanup_time'):
             self._last_cleanup_time = current_time
         
-        if current_time - self._last_cleanup_time > 5000:  # 5 segundos
-            # Remover ataques antigos (mais de 10 segundos)
+        if current_time - self._last_cleanup_time > 5000:  
             old_attacks = [zombie_id for zombie_id, attack_time in self.zombie_attacks_received.items() 
                           if current_time - attack_time > 10000]
             for zombie_id in old_attacks:
@@ -126,17 +122,25 @@ class Player:
         movement = 0
         is_moving = False
         is_running = False
-        # Calcular velocidade de movimento antes de processar eventos
-        current_speed = self.run_speed if (keys[K_LSHIFT] or keys[K_RSHIFT]) else self.speed
-        current_horizontal_velocity = 0
         
-        # Verificar movimento atual para capturar durante o pulo
-        if keys[K_a] or keys[K_LEFT]:
-            current_horizontal_velocity = -current_speed
+        # Verificar se está correndo ANTES de calcular velocidade
+        if keys[K_w] or keys[K_UP] or keys[K_s] or keys[K_DOWN] or keys[K_a] or keys[K_LEFT] or keys[K_d] or keys[K_RIGHT]:
             is_moving = True
-        if keys[K_d] or keys[K_RIGHT]:
-            current_horizontal_velocity = current_speed
-            is_moving = True
+            # Pode correr se: tem stamina E (stamina > 50% OU já estava correndo)
+            can_run = self.current_stamina > 0 and (self.current_stamina > self.max_stamina / 2 or 
+                     (hasattr(self, '_was_running') and self._was_running and self.current_stamina > 0))
+            
+            if (keys[K_LSHIFT] or keys[K_RSHIFT]) and can_run:
+                is_running = True
+                current_speed = self.run_speed
+            else:
+                is_running = False
+                current_speed = self.speed
+        else:
+            current_speed = self.speed
+            
+        # Armazenar estado de corrida para próximo frame
+        self._was_running = is_running
             
         # Atualizar timer de invulnerabilidade
         if self.invulnerability_timer > 0:
@@ -157,7 +161,6 @@ class Player:
                     # Animação de morte completa - permanecer no último frame
                     self.death_animation_complete = True
                     self.current_animation.current_frame = len(self.current_animation.frames) - 1
-                    print("Animação de morte completa - permanecendo no último frame")
                 else:
                     self.current_animation.update(dt)
             return movement
@@ -168,11 +171,9 @@ class Player:
                     if self.attack_combo == 0:
                         self.current_state = "attack_1"
                         self.attack_combo = 1
-                        print("Attack_1 ativado!")
                     else:
                         self.current_state = "attack_2"
                         self.attack_combo = 0
-                        print("Attack_2 (coronhada) ativado!")
                     self.animation_timer = 0
                     self.animation_complete = False
                     self.current_animation.reset()
@@ -183,7 +184,6 @@ class Player:
                     self.animation_timer = 0
                     self.animation_complete = False
                     self.current_animation.reset()
-                    print(f"{language_manager.get_text('shot_fired')}: {self.current_ammo}/{self.max_ammo}")
             
             if event.type == KEYDOWN:
                 if event.key == K_SPACE and self.current_state in ["idle", "walk", "run"] and not self.is_jumping:
@@ -203,11 +203,10 @@ class Player:
                         self.animation_timer = 0
                         self.animation_complete = False
                         self.current_animation.reset()
-                        print(f"{language_manager.get_text('reloading')}: {self.current_ammo}/{self.max_ammo}, {language_manager.get_text('reserve_ammo')}: {self.reserve_ammo}")
                     elif self.reserve_ammo == 0:
-                        print(language_manager.get_text("no_reserve_ammo"))
+                        pass  # Sem munição na reserva
                     else:
-                        print(language_manager.get_text("magazine_full"))
+                        pass  # Pente já está cheio
                     
         # Gerenciar animações de ação
         if self.current_state in ["attack_1", "attack_2", "shot", "recharge", "jump", "dead", "hurt"]:
@@ -230,7 +229,6 @@ class Player:
                     self.current_ammo += ammo_to_transfer
                     self.reserve_ammo -= ammo_to_transfer
                     self.is_reloading = False
-                    print(f"{language_manager.get_text('reload_complete')}! {language_manager.get_text('magazine')}: {self.current_ammo}/{self.max_ammo}, {language_manager.get_text('reserve_ammo')}: {self.reserve_ammo}")
                 elif self.current_state == "hurt":
                     # Após animação de dano, voltar ao estado de idle
                     pass  # Continuará para o estado idle abaixo
@@ -250,7 +248,7 @@ class Player:
                 if self.current_state == "jump":
                     self.current_state = "idle"
         
-        # Gerenciar stamina
+        # Gerenciar stamina - mover antes do movimento para sincronizar
         if is_running and is_moving and self.current_stamina > 0:
             # Consumir stamina ao correr
             self.current_stamina = max(0, self.current_stamina - self.run_stamina_cost * dt / 1000)
@@ -260,13 +258,6 @@ class Player:
         
         # Handle movement only if not performing actions
         if self.current_state in ["idle", "walk", "run"]:
-            # Check if SHIFT is pressed for running and has stamina
-            if (keys[K_LSHIFT] or keys[K_RSHIFT]) and self.current_stamina > 0:
-                is_running = True
-                current_speed = self.run_speed
-            else:
-                current_speed = self.speed
-            
             if keys[K_a] or keys[K_LEFT]:
                 movement -= current_speed * dt / 1000
                 self.facing_right = False
@@ -338,7 +329,6 @@ class Player:
             self.death_animation_complete = False  # Certificar que a animação de morte vai rodar
             self.current_animation = self.animations[self.current_state]  # Definir animação de morte
             self.current_animation.reset()
-            print("Jogador morreu!")
             return True
         else:
             # Ativar animação de dano se não estiver morto
@@ -348,8 +338,6 @@ class Player:
                 self.animation_complete = False
                 self.current_animation.reset()
             
-            zombie_info = f" (Zombie {zombie_id})" if zombie_id else ""
-            print(f"Jogador recebeu {damage} de dano{zombie_info}! Vida: {self.health}/{self.max_health}")
             return False
 
     def get_image(self):
@@ -375,63 +363,64 @@ class Player:
             return fallback
     
     def draw_health_bar(self, screen):
-        bar_width = 200
-        bar_height = 20
-        bar_x = 20
-        bar_y = 20
+        window_height = screen.get_height()
         
-        # Background (dark red)
+        bar_width = 15  # Largura da barra vertical
+        bar_height = 150  # Altura da barra
+        bar_x = 20  # Distância da borda esquerda
+        bar_y = window_height - bar_height - 60  # Posição no canto inferior esquerdo
+        
+        # Background (vermelho escuro)
         pygame.draw.rect(screen, (100, 0, 0), (bar_x, bar_y, bar_width, bar_height))
         
-        # Health (bright red)
+        # Health (vermelho claro)
         health_percentage = self.health / self.max_health
-        health_width = int(bar_width * health_percentage)
-        pygame.draw.rect(screen, (255, 0, 0), (bar_x, bar_y, health_width, bar_height))
+        current_health_height = int(bar_height * health_percentage)
+        health_y = bar_y + (bar_height - current_health_height)  # Preencher de baixo para cima
+        pygame.draw.rect(screen, (255, 0, 0), (bar_x, health_y, bar_width, current_health_height))
         
         # Border
         pygame.draw.rect(screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2)
-        
-        # Health text
-        font = pygame.font.SysFont("Arial", 16)
-        health_text = f"HP: {self.health}/{self.max_health}"
-        text_surface = font.render(health_text, True, (255, 255, 255))
-        screen.blit(text_surface, (bar_x + bar_width + 10, bar_y + 2))
         
     def draw_stamina_bar(self, screen):
-        """Desenhar barra de stamina abaixo da vida"""
-        bar_width = 200
-        bar_height = 15
-        bar_x = 20
-        bar_y = 50  # Abaixo da barra de vida
+        """Desenhar barra de stamina vertical ao lado da barra de vida"""
+        window_height = screen.get_height()
         
-        # Background (azul escuro)
+        bar_width = 15
+        bar_height = 150  
+        bar_x = 45  
+        bar_y = window_height - bar_height - 60  
+        
         pygame.draw.rect(screen, (0, 0, 100), (bar_x, bar_y, bar_width, bar_height))
         
-        # Stamina (azul claro)
+        # Stamina - cor muda se não puder começar a correr
         stamina_percentage = self.current_stamina / self.max_stamina
-        stamina_width = int(bar_width * stamina_percentage)
-        pygame.draw.rect(screen, (0, 150, 255), (bar_x, bar_y, stamina_width, bar_height))
+        current_stamina_height = int(bar_height * stamina_percentage)
+        stamina_y = bar_y + (bar_height - current_stamina_height)  # Preencher de baixo para cima
+        
+        # Cor da stamina baseada na capacidade de correr
+        can_start_running = self.current_stamina > self.max_stamina / 2
+        if can_start_running:
+            stamina_color = (0, 150, 255)  # Azul claro (pode começar a correr)
+        else:
+            stamina_color = (255, 165, 0)  # Laranja (recuperando - não pode começar a correr)
+            
+        pygame.draw.rect(screen, stamina_color, (bar_x, stamina_y, bar_width, current_stamina_height))
         
         # Border
         pygame.draw.rect(screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2)
         
-        # Stamina text
-        font = pygame.font.SysFont("Arial", 14)
-        stamina_text = f"STAMINA: {int(self.current_stamina)}"
-        text_surface = font.render(stamina_text, True, (255, 255, 255))
-        screen.blit(text_surface, (bar_x + bar_width + 10, bar_y + 1))
-        
     def draw_ammo_counter(self, screen):
-        """Desenhar contador de munição no canto superior direito com fonte de pixel"""
-        window_width = screen.get_width()
+        """Desenhar contador de munição em texto ao lado das barras"""
+        window_height = screen.get_height()
         
-        # Usar fonte de pixel (monospace)
-        try:
-            font = pygame.font.Font(None, 36)  # Fonte padrão do sistema em tamanho pixel
-        except:
-            font = pygame.font.SysFont("Courier", 24)  # Fallback para fonte monospace
+        # Posição ao lado das barras de vida e stamina - mais à direita e mais embaixo
+        text_x = 90  # Mais à direita (era 70)
+        text_y = window_height - 120  # Mais embaixo (era 180)
         
-        ammo_text = f"AMMO: {self.current_ammo}/{self.reserve_ammo}"
+        # Fonte para o contador
+        font = pygame.font.SysFont("Arial", 24)
+        ammo_text = f"{self.current_ammo}/{self.reserve_ammo}"
         
         if self.is_reloading:
             color = (255, 165, 0)  # Laranja para recarregando
@@ -442,11 +431,10 @@ class Player:
         
         text_surface = font.render(ammo_text, True, color)
         
-        # Posicionar no canto superior direito
-        ammo_x = window_width - text_surface.get_width() - 20
-        ammo_y = 20
+        # Centralizar o texto na posição
+        text_rect_x = text_x - text_surface.get_width() // 2
         
-        screen.blit(text_surface, (ammo_x, ammo_y))
+        screen.blit(text_surface, (text_rect_x, text_y))
 
     def draw_screen_flash(self, screen):
         if self.screen_flash_timer > 0:

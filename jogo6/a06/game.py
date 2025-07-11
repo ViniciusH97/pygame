@@ -5,7 +5,6 @@ from background import Background
 from player import Player
 from zombie_spawner import ZombieSpawner
 from score_manager import ScoreManager
-from language_manager import language_manager
 
 def create_game_background():
     """Create and return game background"""
@@ -111,20 +110,28 @@ def game(selected_character="Raider_1", display_manager=None):
         player.draw_stamina_bar(screen)
         player.draw_ammo_counter(screen)
         
-        # Desenhar pontuação e tempo com fonte do menu
+        # Desenhar pontuação e tempo no canto inferior direito
+        window_width = screen.get_width()
+        window_height = screen.get_height()
+        
         try:
-            score_font = pygame.font.SysFont("Impact", 35)  # Mesma fonte do menu, tamanho menor
+            score_font = pygame.font.SysFont("Impact", 30)  # Fonte um pouco menor
         except:
-            score_font = pygame.font.SysFont("Arial", 28)
+            score_font = pygame.font.SysFont("Arial", 24)
         
-        score_text = f"{language_manager.get_text('score')}: {score_manager.score}"
+        # Pontuação
+        score_text = f"PONTUAÇÃO: {score_manager.score}"
         score_surface = score_font.render(score_text, True, (255, 255, 255))  # Branco
-        screen.blit(score_surface, (20, 75))  # Movido para baixo
+        score_x = window_width - score_surface.get_width() - 20
+        score_y = window_height - score_surface.get_height() - 60  # Espaço para duas linhas
+        screen.blit(score_surface, (score_x, score_y))
         
-        # Desenhar tempo sobrevivido
-        time_text = f"{language_manager.get_text('time')}: {score_manager.get_time_survived_formatted()}"
+        # Tempo sobrevivido
+        time_text = f"TEMPO: {score_manager.get_time_survived_formatted()}"
         time_surface = score_font.render(time_text, True, (255, 255, 255))  # Branco
-        screen.blit(time_surface, (20, 110))  # Movido para baixo
+        time_x = window_width - time_surface.get_width() - 20
+        time_y = window_height - time_surface.get_height() - 20  # Logo abaixo da pontuação
+        screen.blit(time_surface, (time_x, time_y))
         
         # Check if player died
         if player.is_dead:
@@ -139,7 +146,7 @@ def game(selected_character="Raider_1", display_manager=None):
             
             # Título Game Over
             death_font = pygame.font.SysFont("Impact", 100)
-            death_text = death_font.render(language_manager.get_text("game_over"), True, (255, 0, 0))
+            death_text = death_font.render("GAME OVER", True, (255, 0, 0))
             death_rect = death_text.get_rect(center=(window_width // 2, window_height // 4))
             screen.blit(death_text, death_rect)
             
@@ -154,17 +161,17 @@ def game(selected_character="Raider_1", display_manager=None):
                 small_font = pygame.font.SysFont("Arial", 28)
             
             # Pontuação final
-            final_score = stats_font.render(f"{language_manager.get_text('final_score')}: {stats['score']}", True, (255, 255, 0))
+            final_score = stats_font.render(f"PONTUAÇÃO FINAL: {stats['score']}", True, (255, 255, 0))
             final_score_rect = final_score.get_rect(center=(window_width // 2, window_height // 2 - 60))
             screen.blit(final_score, final_score_rect)
             
             # Estatísticas detalhadas
             stats_y = window_height // 2 + 20
             stats_list = [
-                f"{language_manager.get_text('zombies_killed')}: {stats['zombies_killed']}",
-                f"{language_manager.get_text('time_survived')}: {stats['time_survived']}",
-                f"{language_manager.get_text('points_per_zombie')}: 10",
-                f"{language_manager.get_text('points_per_minute')}: 5"
+                f"Zumbis Mortos: {stats['zombies_killed']}",
+                f"Tempo Sobrevivido: {stats['time_survived']}",
+                f"Pontos por Zumbi: 10",
+                f"Pontos por Minuto: 5"
             ]
             
             for i, stat in enumerate(stats_list):
@@ -174,7 +181,7 @@ def game(selected_character="Raider_1", display_manager=None):
             
             # Instruções
             restart_font = pygame.font.SysFont("Impact", 24)
-            restart_text = restart_font.render(language_manager.get_text("press_esc"), True, (200, 200, 200))
+            restart_text = restart_font.render("Pressione ESC para voltar ao menu", True, (200, 200, 200))
             restart_rect = restart_text.get_rect(center=(window_width // 2, window_height - 100))
             screen.blit(restart_text, restart_rect)
         

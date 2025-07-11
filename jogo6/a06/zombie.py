@@ -144,7 +144,6 @@ class Zombie:
                     self.death_timer = 0  # Inicializar timer quando animação de morte termina
                     # Manter o último frame da animação de morte
                     self.current_animation.current_frame = len(self.current_animation.frames) - 1
-                    print(f"Zombie death animation complete - starting 10 second timer")
                     return
                 elif self.current_state == "hurt":
                     distance = abs(self.world_x - player.world_x)
@@ -155,10 +154,7 @@ class Zombie:
                 elif self.current_state == "attack":
                     distance = abs(self.world_x - player.world_x)
                     if distance <= self.attack_range:
-                        if player.take_damage(self.attack_damage, self.zombie_id):
-                            print(f"Zombie {self.zombie_id} ({self.zombie_type}) dealt {self.attack_damage} damage to player!")
-                        else:
-                            print(f"Zombie {self.zombie_id} attack blocked or player dead")
+                        player.take_damage(self.attack_damage, self.zombie_id)
                     
                     if distance <= self.attack_range:
                         self.current_state = "idle"                    
