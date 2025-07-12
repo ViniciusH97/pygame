@@ -68,7 +68,7 @@ def game(selected_character="Raider_1", display_manager=None):
         # Câmera só pode avançar, nunca voltar
         current_camera_x = max(0, player.world_x - window_width // 2)
         camera_x = max(max_camera_x, current_camera_x)
-        max_camera_x = camera_x  # Atualizar máximo
+        max_camera_x = camera_x  
         
         game_background.update(dt, camera_x)
     
