@@ -13,13 +13,27 @@ class ZombieSpawner:
         self.spawn_timer = 0  # Timer para controlar spawn contínuo
         self.spawn_interval = 3000  # Spawn a cada 3 segundos  
         
-    def update(self, player, dt):
+    def update(self, player, dt, score_manager=None):
         self.spawn_timer += dt
         player_progress = player.world_x
         
-        # Calcular quantos zumbis devem existir baseado no progresso do player
-        # Mais longe = mais zumbis
-        desired_zombie_count = min(15, 3 + int(player_progress / 1000))  # Máximo 15 zumbis
+        # Calcular quantos zumbis devem existir baseado na pontuação do player
+        # Mais pontos = mais zumbis
+        if score_manager:
+            player_score = score_manager.score
+            zombies_killed = score_manager.zombies_killed
+            time_survived = score_manager.time_survived
+            
+            # Sistema de dificuldade simplificado (menos dependente de kills)
+            base_zombie_count = 3
+            score_bonus = min(12, int(player_score / 30))  # Aumentado e mais fácil
+            kill_bonus = min(3, int(zombies_killed / 15))  # Reduzido e mais difícil de alcançar
+            time_bonus = min(10, int(time_survived / 45))   # Aumentado e mais fácil
+            
+            desired_zombie_count = min(25, base_zombie_count + score_bonus + kill_bonus + time_bonus)
+        else:
+            # Fallback para sistema antigo baseado em posição
+            desired_zombie_count = min(15, 3 + int(player_progress / 1000))
         
         # Spawn contínuo de zumbis vindos da direita
         if self.spawn_timer >= self.spawn_interval and len(self.zombies) < desired_zombie_count:
@@ -35,15 +49,8 @@ class ZombieSpawner:
             # Garantir que a posição Y esteja dentro de limites aceitáveis
             spawn_y = max(380, min(spawn_y, 520))  # Faixa um pouco mais ampla
 
-            # Escolher tipo de zumbi - zumbis mais fortes aparecem conforme progresso
-            if player_progress < 1000:
-                zombie_type = random.choice(["Zombie_1", "Zombie_2"])
-            elif player_progress < 2000:
-                zombie_type = random.choice(["Zombie_1", "Zombie_2", "Zombie_3"])
-            elif player_progress < 3000:
-                zombie_type = random.choice(["Zombie_1", "Zombie_2", "Zombie_3", "Zombie_4"])
-            else:
-                zombie_type = random.choice(self.zombie_types)
+            # Escolher tipo de zumbi aleatoriamente - todos com mesma frequência
+            zombie_type = random.choice(self.zombie_types)
 
             new_zombie = Zombie(spawn_x, spawn_y, zombie_type)
             # NÃO detectar o player inicialmente - deixar ele patrulhar
@@ -52,9 +59,16 @@ class ZombieSpawner:
             new_zombie.current_state = "walk"  # Começar andando
             self.zombies.append(new_zombie)
 
-            # Reduzir intervalo de spawn conforme progresso (mais zumbis)
-            base_interval = max(1500, 4000 - int(player_progress / 500))
-            self.spawn_interval = base_interval + random.randint(-500, 500)
+            # Reduzir intervalo de spawn conforme pontuação aumenta (mais zumbis)
+            if score_manager:
+                player_score = score_manager.score
+                # Spawn mais rápido com pontuação maior
+                base_interval = max(1000, 4000 - int(player_score / 10))  # Reduz 100ms a cada 10 pontos
+                self.spawn_interval = base_interval + random.randint(-300, 300)
+            else:
+                # Fallback para sistema antigo
+                base_interval = max(1500, 4000 - int(player_progress / 500))
+                self.spawn_interval = base_interval + random.randint(-500, 500)
         
         # Atualizar zumbis existentes
         for zombie in self.zombies[:]:
@@ -62,7 +76,6 @@ class ZombieSpawner:
             
             # Forçar zumbis a seguirem o player quando detectado
             if zombie.player_detected and not zombie.is_dead:
-                # Se o zumbi está perseguindo, permitir que siga o player em qualquer altura
                 target_y = player.world_y
                 
                 # Mover gradualmente em direção ao player Y

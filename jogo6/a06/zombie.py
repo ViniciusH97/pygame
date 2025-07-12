@@ -39,7 +39,7 @@ class Zombie:
         self.target_x = x  # Posição alvo para onde o zumbi está indo
         self.target_y = y  # Posição Y alvo
         self.reaction_timer = 0  # Timer para delay de reação
-        self.reaction_delay = 800  # Delay de 800ms para reagir a mudanças do player
+        self.reaction_delay = 300  # Delay reduzido de 800ms para 300ms para ser mais responsivo
         self.last_player_x = 0  # Última posição conhecida do player
         self.last_player_y = 0 
         
@@ -109,7 +109,7 @@ class Zombie:
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),     
                 }
                 
-                self.speed = 350  # Aumentado significativamente de 200 para 350
+                self.speed = 350 
                 self.attack_damage = 40  
                 self.max_health = 200  
                 self.health = self.max_health
@@ -188,19 +188,25 @@ class Zombie:
             
             # Comportamento baseado na detecção do player
             if self.player_detected:
-                # Atualizar alvo apenas após o delay de reação
-                if self.reaction_timer >= self.reaction_delay:
+                # Atualizar alvo de forma mais responsiva
+                # Reduzir delay de reação e permitir atualizações mais frequentes
+                if self.reaction_timer >= self.reaction_delay or total_distance > 150:
                     self.target_x = player.world_x
                     self.target_y = player.world_y
                     self.last_player_x = player.world_x
                     self.last_player_y = player.world_y
                     self.reaction_timer = 0  # Resetar timer
                 
-                # Player detectado - comportamento de perseguição gradual
-                # Calcular distância para o alvo (não para o player atual)
-                distance_to_target_x = self.target_x - self.world_x
-                distance_to_target_y = self.target_y - self.world_y
-                distance_to_target = (distance_to_target_x**2 + distance_to_target_y**2)**0.5
+                # Se não temos alvo válido, usar posição atual do player
+                if not hasattr(self, 'target_x') or self.target_x == 0:
+                    self.target_x = player.world_x
+                    self.target_y = player.world_y
+                
+                # Player detectado - comportamento de perseguição mais direto
+                # Calcular distância para o player atual (mais responsivo)
+                distance_to_player_x = player.world_x - self.world_x
+                distance_to_player_y = player.world_y - self.world_y
+                distance_to_player = (distance_to_player_x**2 + distance_to_player_y**2)**0.5
                 
                 # Distância real para o player (para ataque)
                 distance_horizontal = abs(player.world_x - self.world_x)
@@ -218,27 +224,31 @@ class Zombie:
                     self.animation_complete = False
                     self.current_animation.reset()
                     
-                elif distance_to_target > self.attack_range:
+                elif distance_to_player > self.attack_range:
                     self.current_state = "walk"
                     
-                    # Movimento gradual em direção ao alvo (não ao player atual)
-                    if distance_to_target > 5:  # Evitar tremulação quando muito próximo
-                        move_x = (distance_to_target_x / distance_to_target) * self.speed * dt / 1000
+                    # Movimento mais direto em direção ao player
+                    if distance_to_player > 5:  # Evitar tremulação quando muito próximo
+                        move_x = (distance_to_player_x / distance_to_player) * self.speed * dt / 1000
                         
-                        # Movimento Y mais suave para seguir o alvo
-                        y_diff = distance_to_target_y
+                        # Movimento Y mais responsivo para seguir o player
+                        y_diff = distance_to_player_y
                         
-                        # Mover em Y com velocidade normal
-                        if abs(y_diff) > 10:  # Tolerância maior para movimento Y
+                        # Mover em Y com velocidade normal, mas com tolerância menor
+                        if abs(y_diff) > 5:  # Tolerância menor para movimento Y mais responsivo
                             move_y = (y_diff / abs(y_diff)) * min(self.speed * dt / 1000, abs(y_diff))
                             self.world_y += move_y
                         
                         self.world_x += move_x
                         self.facing_right = move_x > 0
                 else:                
-                    # Próximo ao jogador mas ainda não atacando, fica em idle e vira para o jogador
-                    self.current_state = "idle"
-                    self.facing_right = distance_to_target_x > 0
+                    # Próximo ao jogador mas ainda não atacando, continua tentando se aproximar
+                    self.current_state = "walk"
+                    # Continuar se movendo em direção ao player até estar no alcance de ataque
+                    if distance_to_player > 3:
+                        move_x = (distance_to_player_x / distance_to_player) * self.speed * 0.3 * dt / 1000  # Movimento mais lento quando próximo
+                        self.world_x += move_x
+                    self.facing_right = distance_to_player_x > 0
             else:
                 # Player não detectado - patrulhar andando para a esquerda
                 self.current_state = "walk"

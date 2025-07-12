@@ -62,7 +62,7 @@ def game(selected_character="Raider_1", display_manager=None):
         player.update(keys, dt, mouse_buttons, events)
         
         score_manager.update(dt)
-        zombie_spawner.update(player, dt)
+        zombie_spawner.update(player, dt, score_manager)
         zombie_spawner.check_player_attacks(player, score_manager)
         
         # Câmera só pode avançar, nunca voltar
@@ -112,12 +112,18 @@ def game(selected_character="Raider_1", display_manager=None):
         
         try:
             score_font = pygame.font.SysFont("Impact", 30)  # Fonte um pouco menor
+            debug_font = pygame.font.SysFont("Arial", 20)   # Fonte para debug
         except:
             score_font = pygame.font.SysFont("Arial", 24)
+            debug_font = pygame.font.SysFont("Arial", 18)
         
         # Pontuação
         score_text = f"PONTUAÇÃO: {score_manager.score}"
         score_surface = score_font.render(score_text, True, (255, 255, 255))  # Branco
+        
+        # Informações de dificuldade baseada na pontuação
+        # Sistema de debug removido
+        
         score_x = window_width - score_surface.get_width() - 20
         score_y = window_height - score_surface.get_height() - 60  # Espaço para duas linhas
         screen.blit(score_surface, (score_x, score_y))
@@ -164,7 +170,6 @@ def game(selected_character="Raider_1", display_manager=None):
             # Estatísticas detalhadas
             stats_y = window_height // 2 + 20
             stats_list = [
-                f"Zumbis Mortos: {stats['zombies_killed']}",
                 f"Tempo Sobrevivido: {stats['time_survived']}",
                 f"Pontos por Zumbi: 10",
                 f"Pontos por Minuto: 5"
