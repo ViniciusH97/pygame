@@ -32,28 +32,8 @@ from game import game
 class DisplayManager:
     def __init__(self):
         self.is_fullscreen = True
-        self.windowed_sizes = [(1600, 900), (1920, 1080)]
-        self.current_windowed_size = 0
         self.screen = None
         
-    def toggle_fullscreen(self):
-        if self.is_fullscreen:
-            #muda para o modo janela
-            self.is_fullscreen = False
-            width, height = self.windowed_sizes[self.current_windowed_size]
-            self.screen = pygame.display.set_mode((width, height))
-        else:
-            self.is_fullscreen = True
-            self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        return self.screen
-    
-    def cycle_windowed_size(self):
-        if not self.is_fullscreen:
-            self.current_windowed_size = (self.current_windowed_size + 1) % len(self.windowed_sizes)
-            width, height = self.windowed_sizes[self.current_windowed_size]
-            self.screen = pygame.display.set_mode((width, height))
-        return self.screen
-    
     def get_screen(self):
         return self.screen
     

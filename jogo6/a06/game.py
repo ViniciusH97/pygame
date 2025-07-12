@@ -35,10 +35,16 @@ def game(selected_character="Raider_1", display_manager=None):
     window_width = screen.get_width()
     window_height = screen.get_height()
     
+    # Esconder o cursor do mouse durante o jogo
+    pygame.mouse.set_visible(False)
+    
     game_background = create_game_background()
     player = Player(100, 450, selected_character)
     zombie_spawner = ZombieSpawner()
     score_manager = ScoreManager()
+    
+    # Controle de câmera - só pode avançar, nunca voltar
+    max_camera_x = 0
     
     while running:
         dt = clock.tick(60)
@@ -50,20 +56,6 @@ def game(selected_character="Raider_1", display_manager=None):
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     return "menu"
-                elif event.key == K_F11 and display_manager:
-                    # Toggle fullscreen/windowed mode
-                    screen = display_manager.toggle_fullscreen()
-                    window_width = screen.get_width()
-                    window_height = screen.get_height()
-                    # Recreate background for new resolution
-                    game_background = create_game_background()
-                elif event.key == K_F10 and display_manager and not display_manager.is_fullscreen:
-                    # Cycle through windowed sizes (only in windowed mode)
-                    screen = display_manager.cycle_windowed_size()
-                    window_width = screen.get_width()
-                    window_height = screen.get_height()
-                    # Recreate background for new resolution
-                    game_background = create_game_background()
                     
         keys = pygame.key.get_pressed()
         mouse_buttons = pygame.mouse.get_pressed()
@@ -73,7 +65,11 @@ def game(selected_character="Raider_1", display_manager=None):
         zombie_spawner.update(player, dt)
         zombie_spawner.check_player_attacks(player, score_manager)
         
-        camera_x = max(0, player.world_x - window_width // 2)
+        # Câmera só pode avançar, nunca voltar
+        current_camera_x = max(0, player.world_x - window_width // 2)
+        camera_x = max(max_camera_x, current_camera_x)
+        max_camera_x = camera_x  # Atualizar máximo
+        
         game_background.update(dt, camera_x)
     
         screen.fill((0, 0, 0))
@@ -189,3 +185,6 @@ def game(selected_character="Raider_1", display_manager=None):
         player.draw_screen_flash(screen)
         
         pygame.display.flip()
+    
+    # Mostrar o cursor do mouse novamente ao sair do jogo
+    pygame.mouse.set_visible(True)

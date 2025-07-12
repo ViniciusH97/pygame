@@ -46,21 +46,7 @@ def menu(display_manager=None):
             if event.type == QUIT:
                 return "exit"
             if event.type == KEYDOWN:
-                if event.key == K_F11 and display_manager:
-                    # Toggle fullscreen/windowed mode
-                    screen = display_manager.toggle_fullscreen()
-                    window_width = screen.get_width()
-                    window_height = screen.get_height()
-                    # Recreate background for new resolution
-                    menu_background = create_menu_background()
-                elif event.key == K_F10 and display_manager and not display_manager.is_fullscreen:
-                    # Cycle through windowed sizes (only in windowed mode)
-                    screen = display_manager.cycle_windowed_size()
-                    window_width = screen.get_width()
-                    window_height = screen.get_height()
-                    # Recreate background for new resolution
-                    menu_background = create_menu_background()
-                elif event.key == K_UP:
+                if event.key == K_UP:
                     selected_option = (selected_option - 1) % len(options)
                 elif event.key == K_DOWN:
                     selected_option = (selected_option + 1) % len(options)
@@ -100,22 +86,7 @@ def menu(display_manager=None):
         instruction_font = pygame.font.SysFont("Arial", 24)
         instructions = "Use as setinhas para CIMA/BAIXO para navegar pelas opções, Pressione ENTER para selecionar ou ESC para sair"
         inst_text = instruction_font.render(instructions, True, (200, 200, 200))
-        screen.blit(inst_text, (window_width // 2 - inst_text.get_width() // 2, window_height - 130))
-        
-        # Display resolution controls info
-        resolution_font = pygame.font.SysFont("Arial", 20)
-        if display_manager:
-            mode_text = f"Modo: {'Tela Cheia' if display_manager.is_fullscreen else 'Janela'} | Resolução: {window_width}x{window_height}"
-            controls_text = "F11: Alternar Tela Cheia/Janela | F10: Trocar Resolução (Modo Janela)"
-        else:
-            mode_text = f"Resolução: {window_width}x{window_height}"
-            controls_text = "Controles de resolução não disponíveis"
-        
-        mode_surface = resolution_font.render(mode_text, True, (150, 150, 150))
-        controls_surface = resolution_font.render(controls_text, True, (120, 120, 120))
-        
-        screen.blit(mode_surface, (window_width // 2 - mode_surface.get_width() // 2, window_height - 80))
-        screen.blit(controls_surface, (window_width // 2 - controls_surface.get_width() // 2, window_height - 50))
+        screen.blit(inst_text, (window_width // 2 - inst_text.get_width() // 2, window_height - 50))
         
         pygame.display.flip()
 
@@ -139,21 +110,7 @@ def instructions(display_manager=None):
             if event.type == QUIT:
                 return "exit"
             if event.type == KEYDOWN:
-                if event.key == K_F11 and display_manager:
-                    # Toggle fullscreen/windowed mode
-                    screen = display_manager.toggle_fullscreen()
-                    window_width = screen.get_width()
-                    window_height = screen.get_height()
-                    # Recreate background for new resolution
-                    menu_background = create_menu_background()
-                elif event.key == K_F10 and display_manager and not display_manager.is_fullscreen:
-                    # Cycle through windowed sizes (only in windowed mode)
-                    screen = display_manager.cycle_windowed_size()
-                    window_width = screen.get_width()
-                    window_height = screen.get_height()
-                    # Recreate background for new resolution
-                    menu_background = create_menu_background()
-                elif event.key == K_ESCAPE or event.key == K_RETURN:
+                if event.key == K_ESCAPE or event.key == K_RETURN:
                     return "menu"
         
         menu_background.update(dt, pygame.time.get_ticks() * 0.05)
@@ -234,11 +191,6 @@ def instructions(display_manager=None):
             "  Sobreviva o máximo possível!",
             "  Mate zumbis para ganhar pontos",
             "  Colete munição dos zumbis mortos",
-            "",
-            "CONTROLES DE TELA:",
-            "",
-            "  F11 - Alternar entre Tela Cheia e Janela",
-            "  F10 - Trocar resolução (apenas no modo janela)",
             "",
             "CONTROLES DO MENU:",
             "",

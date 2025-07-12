@@ -13,9 +13,9 @@ class Zombie:
         self.zombie_id = Zombie._id_counter
         
         self.world_x = x
-        self.world_y = max(328, min(y, 550))  # Force spawn within bounds
+        self.world_y = y  # Usar a posição Y fornecida inicialmente
         self.scale = 3.5
-        self.speed = 250  
+        self.speed = 300  # Aumentado significativamente de 250 para 450
         self.max_health = 100
         self.health = self.max_health
         self.facing_right = False
@@ -24,20 +24,32 @@ class Zombie:
         self.death_animation_complete = False  
         self.death_timer = 0  # Timer para controlar quando remover o zumbi morto
         self.attack_timer = 0
-        self.attack_cooldown = 500  
-        self.attack_range = 80  
+        self.attack_cooldown = 400  # Reduzir cooldown para ataques mais frequentes
+        self.attack_range = 100  # Aumentar alcance de ataque
         self.attack_damage = 20
         self.animation_timer = 0
         self.animation_complete = True
         self.zombie_type = zombie_type 
         
+        # Sistema de detecção do player
+        self.detection_range = 400 
+        self.player_detected = False
+        
+        # Sistema de perseguição mais realista
+        self.target_x = x  # Posição alvo para onde o zumbi está indo
+        self.target_y = y  # Posição Y alvo
+        self.reaction_timer = 0  # Timer para delay de reação
+        self.reaction_delay = 800  # Delay de 800ms para reagir a mudanças do player
+        self.last_player_x = 0  # Última posição conhecida do player
+        self.last_player_y = 0 
+        
         melee_hitbox_width = int(128 * self.scale * 0.5)
         melee_hitbox_height = int(128 * self.scale * 0.5)
-        self.melee_rect = pygame.Rect(x, max(328, min(y, 550)), melee_hitbox_width, melee_hitbox_height)
+        self.melee_rect = pygame.Rect(x, y, melee_hitbox_width, melee_hitbox_height)
         
         ranged_hitbox_width = int(128 * self.scale * 1.2)  
         ranged_hitbox_height = int(128 * self.scale * 0.7)  
-        self.ranged_rect = pygame.Rect(x, max(328, min(y, 550)), ranged_hitbox_width, ranged_hitbox_height)
+        self.ranged_rect = pygame.Rect(x, y, ranged_hitbox_width, ranged_hitbox_height)
         
         self.rect = self.melee_rect
         
@@ -66,7 +78,7 @@ class Zombie:
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),
                 }
                 
-                self.speed = 550  
+                self.speed = 600  # Aumentado significativamente de 550 para 750
                 self.attack_damage = 25
                 self.max_health = 130
                 self.health = self.max_health
@@ -81,7 +93,7 @@ class Zombie:
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),    
                 }
                 
-                self.speed = 300  
+                self.speed = 300 # Aumentado significativamente de 300 para 500
                 self.attack_damage = 30
                 self.max_health = 150
                 self.health = self.max_health
@@ -97,7 +109,7 @@ class Zombie:
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),     
                 }
                 
-                self.speed = 200  
+                self.speed = 350  # Aumentado significativamente de 200 para 350
                 self.attack_damage = 40  
                 self.max_health = 200  
                 self.health = self.max_health
@@ -132,6 +144,7 @@ class Zombie:
             return  
         
         self.attack_timer += dt
+        self.reaction_timer += dt
     
         if self.current_state in ["attack", "hurt", "dead"]:
             self.animation_timer += dt
@@ -152,11 +165,13 @@ class Zombie:
                     else:
                         self.current_state = "walk"
                 elif self.current_state == "attack":
-                    distance = abs(self.world_x - player.world_x)
-                    if distance <= self.attack_range:
+                    distance_x = abs(self.world_x - player.world_x)
+                    distance_y = abs(self.world_y - player.world_y)
+                    # Ataque funciona se estiver perto horizontal E verticalmente
+                    if distance_x <= self.attack_range and distance_y <= 40:
                         player.take_damage(self.attack_damage, self.zombie_id)
                     
-                    if distance <= self.attack_range:
+                    if distance_x <= self.attack_range + 20:
                         self.current_state = "idle"                    
                     else:
                         self.current_state = "walk"
@@ -167,76 +182,75 @@ class Zombie:
             distance_y = player.world_y - self.world_y
             total_distance = (distance_x**2 + distance_y**2)**0.5
             
-            if total_distance <= self.attack_range and self.attack_timer >= self.attack_cooldown:
-                self.current_state = "attack"
-                self.attack_timer = 0
-                self.animation_timer = 0
-                self.animation_complete = False
-                self.current_animation.reset()
+            # Verificar se o player está dentro do alcance de detecção
+            if total_distance <= self.detection_range:
+                self.player_detected = True
+            
+            # Comportamento baseado na detecção do player
+            if self.player_detected:
+                # Atualizar alvo apenas após o delay de reação
+                if self.reaction_timer >= self.reaction_delay:
+                    self.target_x = player.world_x
+                    self.target_y = player.world_y
+                    self.last_player_x = player.world_x
+                    self.last_player_y = player.world_y
+                    self.reaction_timer = 0  # Resetar timer
                 
-            elif total_distance > self.attack_range:
+                # Player detectado - comportamento de perseguição gradual
+                # Calcular distância para o alvo (não para o player atual)
+                distance_to_target_x = self.target_x - self.world_x
+                distance_to_target_y = self.target_y - self.world_y
+                distance_to_target = (distance_to_target_x**2 + distance_to_target_y**2)**0.5
+                
+                # Distância real para o player (para ataque)
+                distance_horizontal = abs(player.world_x - self.world_x)
+                distance_vertical = abs(player.world_y - self.world_y)
+                
+                # Pode atacar se estiver perto horizontalmente E verticalmente do player real
+                can_attack = (distance_horizontal <= self.attack_range and 
+                             distance_vertical <= 30 and  # Tolerância pequena para altura
+                             self.attack_timer >= self.attack_cooldown)
+                
+                if can_attack:
+                    self.current_state = "attack"
+                    self.attack_timer = 0
+                    self.animation_timer = 0
+                    self.animation_complete = False
+                    self.current_animation.reset()
+                    
+                elif distance_to_target > self.attack_range:
+                    self.current_state = "walk"
+                    
+                    # Movimento gradual em direção ao alvo (não ao player atual)
+                    if distance_to_target > 5:  # Evitar tremulação quando muito próximo
+                        move_x = (distance_to_target_x / distance_to_target) * self.speed * dt / 1000
+                        
+                        # Movimento Y mais suave para seguir o alvo
+                        y_diff = distance_to_target_y
+                        
+                        # Mover em Y com velocidade normal
+                        if abs(y_diff) > 10:  # Tolerância maior para movimento Y
+                            move_y = (y_diff / abs(y_diff)) * min(self.speed * dt / 1000, abs(y_diff))
+                            self.world_y += move_y
+                        
+                        self.world_x += move_x
+                        self.facing_right = move_x > 0
+                else:                
+                    # Próximo ao jogador mas ainda não atacando, fica em idle e vira para o jogador
+                    self.current_state = "idle"
+                    self.facing_right = distance_to_target_x > 0
+            else:
+                # Player não detectado - patrulhar andando para a esquerda
                 self.current_state = "walk"
+                self.world_x -= self.speed * dt / 1000  # Usar mesma velocidade base
+                self.facing_right = False  # Virar para a esquerda
                 
-                player_movement = abs(getattr(player, 'last_movement', 0))
-                
-                if player_movement > 100: 
-                    if player.last_movement > 0: 
-                        if self.world_x < player.world_x - 50:
-                            prediction_factor = min(300, player_movement * 2)
-                            target_x = player.world_x + prediction_factor
-                            target_y = player.world_y
-                            
-                            intercept_x = target_x - self.world_x
-                            intercept_y = target_y - self.world_y
-                            intercept_distance = (intercept_x**2 + intercept_y**2)**0.5
-                            
-                            if intercept_distance > 0:
-                                speed_multiplier = 1.3
-                                move_x = (intercept_x / intercept_distance) * self.speed * speed_multiplier * dt / 1000
-                                move_y = (intercept_y / intercept_distance) * self.speed * speed_multiplier * dt / 1000
-                                
-                                self.world_x += move_x
-                                self.world_y += move_y
-                                # Ensure zombie stays within map bounds
-                                self.world_y = max(328, min(self.world_y, 550))
-                                self.facing_right = move_x > 0
-                        else:
-                            self._move_directly_to_player(distance_x, distance_y, dt)
-                    elif player.last_movement < 0:  
-                        if self.world_x > player.world_x + 50:
-                            prediction_factor = min(300, abs(player_movement) * 2)
-                            target_x = player.world_x - prediction_factor
-                            target_y = player.world_y
-                            
-                            intercept_x = target_x - self.world_x
-                            intercept_y = target_y - self.world_y
-                            intercept_distance = (intercept_x**2 + intercept_y**2)**0.5
-                            
-                            if intercept_distance > 0:
-                                speed_multiplier = 1.3
-                                move_x = (intercept_x / intercept_distance) * self.speed * speed_multiplier * dt / 1000
-                                move_y = (intercept_y / intercept_distance) * self.speed * speed_multiplier * dt / 1000
-                                
-                                self.world_x += move_x
-                                self.world_y += move_y
-                                # Ensure zombie stays within map bounds
-                                self.world_y = max(328, min(self.world_y, 550))
-                                self.facing_right = move_x > 0
-                        else:
-                            # Zumbi está na frente ou lateral, movimento direto
-                            self._move_directly_to_player(distance_x, distance_y, dt)
-                    else:
-                        # Player movendo verticalmente
-                        self._move_directly_to_player(distance_x, distance_y, dt)
-                else:
-                    # Player parado ou movendo devagar
-                    self._move_directly_to_player(distance_x, distance_y, dt)
-            else:                
-                # Próximo ao jogador mas ainda não atacando, fica em idle e vira para o jogador
-                self.current_state = "idle"
-                self.facing_right = distance_x > 0
+                # Impedir que o zumbi saia do mapa pela esquerda
+                self.world_x = max(0, self.world_x)
         
-        self.world_y = max(328, min(self.world_y, 550))
+        # Manter zumbis dentro dos limites do mapa com flexibilidade para perseguição
+        # Ajustar limites para evitar que saiam do mapa visível
+        self.world_y = max(380, min(self.world_y, 600))  # Limites mais restritivos e seguros
         
         self.current_animation = self.animations[self.current_state]
         if not (self.is_dead and self.death_animation_complete):
@@ -270,14 +284,12 @@ class Zombie:
             self.animation_timer = 0
             self.animation_complete = False
             self.current_animation.reset()
-            print(f"Zombie died!")
             return True  
         else:
             self.current_state = "hurt"
             self.animation_timer = 0
             self.animation_complete = False
             self.current_animation.reset()            
-            print(f"Zombie took {damage} damage! Health: {self.health}/{self.max_health}")
             return False  
     
     def get_image(self):
@@ -295,7 +307,6 @@ class Zombie:
                 fallback.fill((0, 150, 0))
                 return fallback
         except Exception as e:
-            print(f"Error getting zombie image: {e}")
             fallback = pygame.Surface((int(128 * self.scale), int(128 * self.scale)))
             fallback.fill((0, 150, 0))
             return fallback
@@ -304,7 +315,6 @@ class Zombie:
         if self.is_dead or self.health <= 0:
             return
         
-        # posição da barrsa de vida
         bar_width = 60
         bar_height = 6
         bar_x = self.world_x - camera_x + (int(128 * self.scale) - bar_width) // 2
@@ -341,6 +351,7 @@ class Zombie:
             screen.blit(text_surface, (text_x, text_y))
     
     def _move_directly_to_player(self, distance_x, distance_y, dt):
+        # Movimento horizontal
         if abs(distance_x) > 5:
             if distance_x > 0:
                 self.world_x += self.speed * dt / 1000
@@ -349,11 +360,9 @@ class Zombie:
                 self.world_x -= self.speed * dt / 1000
                 self.facing_right = False
         
+        # Movimento vertical para seguir o player
         if abs(distance_y) > 5:
             if distance_y > 0:
                 self.world_y += self.speed * dt / 1000
             else:
                 self.world_y -= self.speed * dt / 1000
-        
-        # Ensure zombie stays within map bounds after movement
-        self.world_y = max(328, min(self.world_y, 550))

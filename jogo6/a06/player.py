@@ -73,7 +73,7 @@ class Player:
                 "attack_2": AnimatedSprite(os.path.join(raider_dir, "Attack_2.png"), 128, 128, 3, 120),  
                 "shot": AnimatedSprite(os.path.join(raider_dir, "Shot.png"), 128, 128, 12, 80),  
                 "jump": AnimatedSprite(os.path.join(raider_dir, "Jump.png"), 128, 128, 11, 100),  
-                "recharge": AnimatedSprite(os.path.join(raider_dir, "Recharge.png"), 128, 128, 12, 150),  
+                "recharge": AnimatedSprite(os.path.join(raider_dir, "Recharge.png"), 128, 128, 12, 100),  # Reduzido de 150 para 100  
                 "dead": AnimatedSprite(os.path.join(raider_dir, "Dead.png"), 128, 128, 4, 200),  
                 "hurt": AnimatedSprite(os.path.join(raider_dir, "Hurt.png"), 128, 128, 2, 150),  
             }
@@ -195,9 +195,9 @@ class Player:
                     self.animation_complete = False
                     self.current_animation.reset()
                 
-                elif event.key == K_r and self.current_state in ["idle", "walk", "run"] and not self.is_reloading:
+                elif event.key == K_r and self.current_state in ["idle", "walk", "run"]:
                     # Sistema de recarga: transfere da reserva para o pente
-                    if self.reserve_ammo > 0 and self.current_ammo < self.max_ammo:
+                    if self.reserve_ammo > 0 and self.current_ammo < self.max_ammo and not self.is_reloading:
                         self.is_reloading = True
                         self.current_state = "recharge"
                         self.animation_timer = 0
@@ -205,6 +205,9 @@ class Player:
                         self.current_animation.reset()
                     elif self.reserve_ammo == 0:
                         pass  # Sem munição na reserva
+                    elif self.is_reloading:
+                        # Se estava travado recarregando, resetar e tentar novamente
+                        self.is_reloading = False
                     else:
                         pass  # Pente já está cheio
                     
@@ -259,9 +262,11 @@ class Player:
         # Handle movement only if not performing actions
         if self.current_state in ["idle", "walk", "run"]:
             if keys[K_a] or keys[K_LEFT]:
-                movement -= current_speed * dt / 1000
-                self.facing_right = False
-                is_moving = True
+                # Impedir movimento para a esquerda se já estiver no limite
+                if self.world_x > 0:
+                    movement -= current_speed * dt / 1000
+                    self.facing_right = False
+                    is_moving = True
                 
             if keys[K_d] or keys[K_RIGHT]:
                 movement += current_speed * dt / 1000
@@ -277,6 +282,11 @@ class Player:
                 
             self.world_x += movement
             
+            # Garantir que o player não saia da borda esquerda
+            if self.world_x < 0:
+                self.world_x = 0
+                movement = 0  # Cancelar movimento para a esquerda
+            
             # Rastrear movimento para IA dos zumbis
             self.last_movement = movement
             
@@ -288,7 +298,12 @@ class Player:
             else:
                 self.current_state = "idle"       
         self.world_x = max(0, self.world_x)
-        self.world_y = max(328, min(self.world_y, 550))
+        # Expandir limites verticais para permitir melhor perseguição dos zumbis
+        self.world_y = max(300, min(self.world_y, 600))
+
+        # Verificação de segurança: se não está no estado recharge mas is_reloading está True, resetar
+        if self.is_reloading and self.current_state != "recharge":
+            self.is_reloading = False
 
         self.current_animation = self.animations[self.current_state]
         self.current_animation.update(dt)
@@ -333,6 +348,10 @@ class Player:
         else:
             # Ativar animação de dano se não estiver morto
             if self.current_state not in ["dead", "hurt"]:
+                # Se estava recarregando quando tomou dano, resetar o estado de recarga
+                if self.current_state == "recharge":
+                    self.is_reloading = False
+                
                 self.current_state = "hurt"
                 self.animation_timer = 0
                 self.animation_complete = False
@@ -365,8 +384,8 @@ class Player:
     def draw_health_bar(self, screen):
         window_height = screen.get_height()
         
-        bar_width = 15  # Largura da barra vertical
-        bar_height = 150  # Altura da barra
+        bar_width = 20  # Aumentado de 15 para 20
+        bar_height = 200  # Aumentado de 150 para 200
         bar_x = 20  # Distância da borda esquerda
         bar_y = window_height - bar_height - 60  # Posição no canto inferior esquerdo
         
@@ -386,9 +405,9 @@ class Player:
         """Desenhar barra de stamina vertical ao lado da barra de vida"""
         window_height = screen.get_height()
         
-        bar_width = 15
-        bar_height = 150  
-        bar_x = 45  
+        bar_width = 20  # Aumentado de 15 para 20
+        bar_height = 200  # Aumentado de 150 para 200
+        bar_x = 50  # Ajustado de 45 para 50 devido ao aumento da largura
         bar_y = window_height - bar_height - 60  
         
         pygame.draw.rect(screen, (0, 0, 100), (bar_x, bar_y, bar_width, bar_height))
@@ -414,12 +433,12 @@ class Player:
         """Desenhar contador de munição em texto ao lado das barras"""
         window_height = screen.get_height()
         
-        # Posição ao lado das barras de vida e stamina - mais à direita e mais embaixo
-        text_x = 90  # Mais à direita (era 70)
-        text_y = window_height - 120  # Mais embaixo (era 180)
+        # Posição ao lado das barras de vida e stamina - ajustada para novas barras maiores
+        text_x = 100  # Mais à direita devido às barras maiores
+        text_y = window_height - 140  # Ajustado para as barras maiores
         
-        # Fonte para o contador
-        font = pygame.font.SysFont("Arial", 24)
+        # Fonte maior para o contador
+        font = pygame.font.SysFont("Arial", 32)  # Aumentado de 24 para 32
         ammo_text = f"{self.current_ammo}/{self.reserve_ammo}"
         
         if self.is_reloading:
