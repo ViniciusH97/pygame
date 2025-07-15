@@ -7,11 +7,11 @@ class AmmoPickup:
     def __init__(self, x, y):
         self.world_x = x
         self.world_y = y
-        self.scale = 0.08  # Ligeiramente maior para melhor visibilidade
+        self.scale = 0.08 # tamanho da munição
         self.collected = False
         self.ammo_amount = 3  
     
-        # Hitbox generosa para facilitar coleta
+        # Hitbox para a coleta 
         hitbox_size = 90  
         self.rect = pygame.Rect(x - hitbox_size//2, y - hitbox_size//2, hitbox_size, hitbox_size)
         
@@ -32,17 +32,16 @@ class AmmoPickup:
             pygame.draw.circle(self.image, (139, 69, 19), (25, 25), 15)
             pygame.draw.circle(self.image, (139, 69, 19), (30, 30), 15)
 
-        # Animação de flutuação mais suave
         self.float_timer = 0
-        self.float_amplitude = 8  # Amplitude um pouco maior
-        self.original_y = y  # Y base na posição fornecida
+        self.float_amplitude = 8 
+        self.original_y = y 
         
     def update(self, dt):
         if not self.collected:
             self.float_timer += dt
             float_offset = self.float_amplitude * math.sin(self.float_timer / 400)  
             self.world_y = self.original_y + float_offset
-            # Atualizar hitbox junto com a posição
+            
             self.rect.centerx = self.world_x
             self.rect.centery = self.world_y
     

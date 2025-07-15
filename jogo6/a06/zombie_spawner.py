@@ -6,7 +6,7 @@ from ammo_pickup import AmmoPickup
 class ZombieSpawner:
     def __init__(self):
         self.zombies = []
-        self.last_spawn_x = 800  # Começar spawn mais à frente
+        self.last_spawn_x = 800  
         self.spawn_distance = 400  # Reduzir distância entre spawns para mais zumbis
         self.zombie_types = ["Zombie_1", "Zombie_2", "Zombie_3", "Zombie_4"] 
         self.ammo_pickups = []
@@ -39,24 +39,39 @@ class ZombieSpawner:
         if self.spawn_timer >= self.spawn_interval and len(self.zombies) < desired_zombie_count:
             self.spawn_timer = 0
             
-            # Spawn bem mais à direita, totalmente fora da visão do player
+            # Spawn estratégico - alguns à frente, alguns atrás para cercar o player
             camera_x = max(0, player.world_x - 640)  # Assumindo tela de ~1280px
-            spawn_x = camera_x + 1280 + random.randint(300, 800)  # Muito mais longe à direita
             
-            # Spawnar próximo à altura do player mas com alguma variação
-            spawn_y = player.world_y + random.randint(-30, 30)  # Pequena variação
+            # 70% chance de spawn à direita, 30% chance à esquerda (atrás do player)
+            if random.randint(1, 100) <= 70:
+                # Spawn à direita (normal)
+                spawn_x = camera_x + 1280 + random.randint(200, 600)
+            else:
+                # Spawn à esquerda (atrás do player) para impedir fuga infinita
+                spawn_x = max(0, player.world_x - random.randint(800, 1200))
+            
+            # Spawnar próximo à altura do player com variação mínima
+            spawn_y = player.world_y + random.randint(-15, 15)  # Variação muito pequena
 
-            # Garantir que a posição Y esteja dentro de limites aceitáveis
-            spawn_y = max(380, min(spawn_y, 520))  # Faixa um pouco mais ampla
+            # Garantir que a posição Y esteja próxima ao player (mais restritiva)
+            spawn_y = max(player.world_y - 50, min(spawn_y, player.world_y + 50))  # Muito próximo ao player
 
             # Escolher tipo de zumbi aleatoriamente - todos com mesma frequência
             zombie_type = random.choice(self.zombie_types)
 
             new_zombie = Zombie(spawn_x, spawn_y, zombie_type)
-            # NÃO detectar o player inicialmente - deixar ele patrulhar
-            new_zombie.player_detected = False  # Começar patrulhando
-            new_zombie.facing_right = False  # Virar para a esquerda
-            new_zombie.current_state = "walk"  # Começar andando
+            
+            # Configurar comportamento baseado na posição de spawn
+            if spawn_x < player.world_x:  # Zumbi spawnou atrás
+                new_zombie.player_detected = True  # Detectar imediatamente
+                new_zombie.facing_right = True  # Virar para a direita (em direção ao player)
+                new_zombie.current_state = "walk"  # Começar perseguindo
+            else:  # Zumbi spawnou à frente
+                new_zombie.player_detected = False  # Começar patrulhando
+                new_zombie.facing_right = False  # Virar para a esquerda
+                new_zombie.current_state = "walk"  # Começar andando
+                
+            # Velocidade mantida padrão do tipo de zumbi (sem boost)
             self.zombies.append(new_zombie)
 
             # Reduzir intervalo de spawn conforme pontuação aumenta (mais zumbis)
@@ -64,34 +79,22 @@ class ZombieSpawner:
                 player_score = score_manager.score
                 # Spawn mais rápido com pontuação maior
                 base_interval = max(1000, 4000 - int(player_score / 10))  # Reduz 100ms a cada 10 pontos
-                self.spawn_interval = base_interval + random.randint(-300, 300)
+                self.spawn_interval = base_interval + random.randint(-200, 200)
             else:
                 # Fallback para sistema antigo
                 base_interval = max(1500, 4000 - int(player_progress / 500))
-                self.spawn_interval = base_interval + random.randint(-500, 500)
+                self.spawn_interval = base_interval + random.randint(-300, 300)
         
         # Atualizar zumbis existentes
         for zombie in self.zombies[:]:
             zombie.update(dt, player)
             
-            # Forçar zumbis a seguirem o player quando detectado
-            if zombie.player_detected and not zombie.is_dead:
-                target_y = player.world_y
-                
-                # Mover gradualmente em direção ao player Y
-                y_diff = target_y - zombie.world_y
-                if abs(y_diff) > 5:  # Se diferença é significativa
-                    move_speed = min(zombie.speed * dt / 1000, abs(y_diff))
-                    if y_diff > 0:
-                        zombie.world_y += move_speed
-                    else:
-                        zombie.world_y -= move_speed
-                
-                # Permitir faixa mais ampla durante perseguição
-                zombie.world_y = max(250, min(zombie.world_y, 650))
-            else:
-                # Quando não está perseguindo, manter nos limites padrão mais restritivos
-                zombie.world_y = max(380, min(zombie.world_y, 520))
+            # Apenas detectar o player se estiver próximo, mas não forçar movimento
+            if not zombie.player_detected and not zombie.is_dead:
+                distance_to_player = abs(zombie.world_x - player.world_x)
+                if distance_to_player < 500:  # Range de detecção
+                    zombie.player_detected = True
+                    zombie.current_state = "walk"
             
             # Remover zumbis que saíram muito para a esquerda
             if zombie.world_x < player_progress - 1500:  
@@ -123,9 +126,9 @@ class ZombieSpawner:
         # 25% de chance de spawnar munição (reduzido de 40%)
         if random.randint(1, 100) <= 25:
             # Calcular centro visual correto do sprite do zumbi
-            # Sprite base: 128x128 pixels, escala: 3.5
-            sprite_width = int(128 * 3.5)
-            sprite_height = int(128 * 3.5)
+            # Sprite base: 128x128 pixels, escala: 4 (atualizada)
+            sprite_width = int(128 * 4)
+            sprite_height = int(128 * 4)
             
             # Posicionar munição no centro do sprite morto
             ammo_x = zombie_x + (sprite_width // 2)
@@ -153,50 +156,57 @@ class ZombieSpawner:
     def check_player_attacks(self, player, score_manager=None):
         is_attacking = False
         attack_range = 120
-        attack_width = 80
-        attack_height = 100
+        attack_width = 120  # Aumentado de 80 para 120
+        attack_height = 120  # Aumentado de 100 para 120
         attack_type = ""
         
         if player.current_state in ["attack_1", "attack_2"] and player.animation_timer < 1000:  
             is_attacking = True
             attack_type = player.current_state
             
-            # Ajuste do ataque 2 (coronhada)
+            # Ajuste do ataque 2 (coronhada) - valores maiores
             if player.current_state == "attack_2":  # Coronhada
-                attack_range = 100  # Aumentar alcance
-                attack_width = 140  # Aumentar largura para melhor detecção
+                attack_range = 130 
+                attack_width = 180  
             else:  # attack_1 
-                attack_range = 100
-                attack_width = 100
+                attack_range = 120
+                attack_width = 150
             
         # Verificar ataques de tiro (botão esquerdo do mouse)  
         elif player.current_state == "shot" and player.animation_timer < 800:  # Janela maior para shot
             is_attacking = True
             attack_type = "shot"
-            # Aumentar alcance para ataques de tiro
+            
             attack_range = 250
-            attack_width = 150
+            attack_width = 120
             
         if is_attacking:
             # Criar hitbox de ataque na frente do player - posicionamento melhorado
             if player.facing_right:
-                attack_x = player.world_x + 80  # Posicionar ataque mais próximo do player
+                if attack_type in ["attack_1", "attack_2"]:
+                    attack_x = player.world_x + 40  # Mais próximo para ataques melee
+                else:
+                    attack_x = player.world_x + 80  # Posição normal para tiros
             else:
                 # Para ataques corpo a corpo quando olhando para esquerda, ajustar posição
                 if attack_type in ["attack_1", "attack_2"]:
-                    attack_x = player.world_x - attack_width - 20  # Usar largura do ataque em vez do alcance
+                    attack_x = player.world_x - attack_width + 20  # Posição ajustada para esquerda
                 else:
-                    attack_x = player.world_x - attack_range - 20  # Para tiros, usar alcance normal
+                    # Para tiros, usar largura em vez de alcance para posicionamento mais próximo
+                    attack_x = player.world_x - attack_width - 40  # Posição mais próxima para tiros à esquerda
                 
             # Posicionamento Y melhorado para combinar melhor com a altura dos zumbis
             if attack_type in ["attack_1", "attack_2"]:  # Ataques corpo a corpo
-                attack_y = player.world_y + 80  # Posição Y um pouco mais alta
-                if attack_type == "attack_2":  # Coronhada tem hitbox maior
-                    attack_height = 220  # Altura ainda maior para coronhada
-                    attack_width = max(attack_width, 160)  # Largura ainda maior para coronhada
+                attack_y = player.world_y + 40  # Posição Y mais baixa para pegar os zumbis
+                if attack_type == "attack_2":  # Coronhada tem hitbox ainda maior
+                    attack_height = 280  # Altura muito maior para coronhada
+                    attack_width = max(attack_width, 200)  # Largura muito maior para coronhada
+                    attack_range = 140  # Alcance maior para coronhada
+                    attack_y = player.world_y + 20  # Posição ainda mais baixa para coronhada
                 else:
-                    attack_height = 180  
-                    attack_width = max(attack_width, 140)
+                    attack_height = 220  # Altura maior para attack_1
+                    attack_width = max(attack_width, 170)
+                    attack_y = player.world_y + 30  # Posição ligeiramente mais baixa
             else:  # Ataques de tiro
                 attack_y = player.world_y + 60  # Manter posicionamento de tiro
                 
