@@ -7,11 +7,10 @@ class AmmoPickup:
     def __init__(self, x, y):
         self.world_x = x
         self.world_y = y
-        self.scale = 0.08 # tamanho da munição
+        self.scale = 0.08 
         self.collected = False
         self.ammo_amount = 3  
     
-        # Hitbox para a coleta 
         hitbox_size = 90  
         self.rect = pygame.Rect(x - hitbox_size//2, y - hitbox_size//2, hitbox_size, hitbox_size)
         
@@ -25,8 +24,6 @@ class AmmoPickup:
             new_height = int(self.image.get_height() * self.scale)
             self.image = pygame.transform.scale(self.image, (new_width, new_height))
         except Exception as e:
-            print(f"Erro ao carregar munição: {e}")
-            # Criar uma imagem de fallback menor
             self.image = pygame.Surface((50, 50), pygame.SRCALPHA)
             pygame.draw.circle(self.image, (255, 215, 0), (25, 25), 20)
             pygame.draw.circle(self.image, (139, 69, 19), (25, 25), 15)

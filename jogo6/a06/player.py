@@ -61,10 +61,8 @@ class Player:
         
         try:
             idle_path = os.path.join(raider_dir, "Idle.png")
-            print(f"Loading idle sprite from: {idle_path}")
             
             idle_sheet = pygame.image.load(idle_path).convert_alpha()
-            print(f"Idle spritesheet size: {idle_sheet.get_size()}")
             self.animations = {
                 "idle": AnimatedSprite(idle_path, 128, 128, 6, 200),
                 "walk": AnimatedSprite(os.path.join(raider_dir, "Walk.png"), 128, 128, 8, 100),
@@ -89,7 +87,6 @@ class Player:
             fallback_anim.frame_duration = 200
             
         except Exception as e:
-            print(f"Error loading sprites: {e}")
             fallback_surface = pygame.Surface((128, 128))
             fallback_surface.fill((255, 0, 0))  
             
@@ -299,7 +296,7 @@ class Player:
                 self.current_state = "idle"       
         self.world_x = max(0, self.world_x)
         
-        self.world_y = max(350, min(self.world_y, 520))
+        self.world_y = max(200, min(self.world_y, 400))
 
         if self.is_reloading and self.current_state != "recharge":
             self.is_reloading = False
@@ -374,7 +371,6 @@ class Player:
                 fallback.fill((255, 255, 0))  
                 return fallback
         except Exception as e:
-            print(f"Error getting player image: {e}")
             fallback = pygame.Surface((int(128 * self.scale), int(128 * self.scale)))
             fallback.fill((255, 0, 255))  
             return fallback
@@ -382,18 +378,16 @@ class Player:
     def draw_health_bar(self, screen):
         window_height = screen.get_height()
         
-        bar_width = 20  # Aumentado de 15 para 20
-        bar_height = 200  # Aumentado de 150 para 200
-        bar_x = 20  # Distância da borda esquerda
-        bar_y = window_height - bar_height - 60  # Posição no canto inferior esquerdo
+        bar_width = 20  
+        bar_height = 200  
+        bar_x = 20  
+        bar_y = window_height - bar_height - 60  
         
-        # Background (vermelho escuro)
         pygame.draw.rect(screen, (100, 0, 0), (bar_x, bar_y, bar_width, bar_height))
         
-        # Health (vermelho claro)
         health_percentage = self.health / self.max_health
         current_health_height = int(bar_height * health_percentage)
-        health_y = bar_y + (bar_height - current_health_height)  # Preencher de baixo para cima
+        health_y = bar_y + (bar_height - current_health_height)  
         pygame.draw.rect(screen, (255, 0, 0), (bar_x, health_y, bar_width, current_health_height))
         
         # Border

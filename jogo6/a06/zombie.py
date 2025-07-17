@@ -261,8 +261,8 @@ class Zombie:
         
         # Manter zumbis dentro dos limites do mapa com flexibilidade para perseguição
         # Ajustar limites baseados na posição do player para melhor alinhamento
-        min_y = max(350, player.world_y - 100)  # Não muito acima do player
-        max_y = min(550, player.world_y + 100)  # Não muito abaixo do player
+        min_y = max(230, player.world_y - 100)  
+        max_y = min(550, player.world_y + 100)  
         self.world_y = max(min_y, min(self.world_y, max_y))
         
         self.current_animation = self.animations[self.current_state]

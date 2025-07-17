@@ -43,7 +43,6 @@ def game(selected_character="Raider_1", display_manager=None):
     zombie_spawner = ZombieSpawner()
     score_manager = ScoreManager()
     
-    # Controle de câmera - só pode avançar, nunca voltar
     max_camera_x = 0
     
     while running:
@@ -135,8 +134,7 @@ def game(selected_character="Raider_1", display_manager=None):
         time_y = window_height - time_surface.get_height() - 20  # Logo abaixo da pontuação
         screen.blit(time_surface, (time_x, time_y))
         
-        # Check if player died
-        if player.is_dead:
+        if player.is_dead: 
             # Parar a contagem do tempo
             score_manager.set_game_over()
             
@@ -156,7 +154,7 @@ def game(selected_character="Raider_1", display_manager=None):
             stats = score_manager.get_stats()
             
             try:
-                stats_font = pygame.font.SysFont("Impact", 50)  # Fonte do menu
+                stats_font = pygame.font.SysFont("Impact", 50)  
                 small_font = pygame.font.SysFont("Impact", 35)
             except:
                 stats_font = pygame.font.SysFont("Arial", 40)
@@ -166,13 +164,12 @@ def game(selected_character="Raider_1", display_manager=None):
             final_score = stats_font.render(f"PONTUAÇÃO FINAL: {stats['score']}", True, (255, 255, 0))
             final_score_rect = final_score.get_rect(center=(window_width // 2, window_height // 2 - 60))
             screen.blit(final_score, final_score_rect)
-            
+
             # Estatísticas detalhadas
             stats_y = window_height // 2 + 20
             stats_list = [
+                f"Pontuação Recorde: "
                 f"Tempo Sobrevivido: {stats['time_survived']}",
-                f"Pontos por Zumbi: 10",
-                f"Pontos por Minuto: 5"
             ]
             
             for i, stat in enumerate(stats_list):
@@ -180,13 +177,11 @@ def game(selected_character="Raider_1", display_manager=None):
                 stat_rect = stat_surface.get_rect(center=(window_width // 2, stats_y + i * 40))
                 screen.blit(stat_surface, stat_rect)
             
-            # Instruções
             restart_font = pygame.font.SysFont("Impact", 24)
             restart_text = restart_font.render("Pressione ESC para voltar ao menu", True, (200, 200, 200))
             restart_rect = restart_text.get_rect(center=(window_width // 2, window_height - 100))
             screen.blit(restart_text, restart_rect)
         
-        # Draw screen flash effect when player takes damage
         player.draw_screen_flash(screen)
         
         pygame.display.flip()
