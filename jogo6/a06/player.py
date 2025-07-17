@@ -73,7 +73,7 @@ class Player:
                 "attack_2": AnimatedSprite(os.path.join(raider_dir, "Attack_2.png"), 128, 128, 3, 120),  
                 "shot": AnimatedSprite(os.path.join(raider_dir, "Shot.png"), 128, 128, 12, 80),  
                 "jump": AnimatedSprite(os.path.join(raider_dir, "Jump.png"), 128, 128, 11, 100),  
-                "recharge": AnimatedSprite(os.path.join(raider_dir, "Recharge.png"), 128, 128, 12, 100),  # Reduzido de 150 para 100  
+                "recharge": AnimatedSprite(os.path.join(raider_dir, "Recharge.png"), 128, 128, 12, 100),
                 "dead": AnimatedSprite(os.path.join(raider_dir, "Dead.png"), 128, 128, 4, 200),  
                 "hurt": AnimatedSprite(os.path.join(raider_dir, "Hurt.png"), 128, 128, 2, 150),  
             }
@@ -298,10 +298,9 @@ class Player:
             else:
                 self.current_state = "idle"       
         self.world_x = max(0, self.world_x)
-        # Expandir limites verticais para permitir melhor perseguição dos zumbis
-        self.world_y = max(300, min(self.world_y, 600))
+        
+        self.world_y = max(350, min(self.world_y, 520))
 
-        # Verificação de segurança: se não está no estado recharge mas is_reloading está True, resetar
         if self.is_reloading and self.current_state != "recharge":
             self.is_reloading = False
 
@@ -310,7 +309,6 @@ class Player:
         return movement
         
     def take_damage(self, damage, zombie_id=None):
-        """Fazer o jogador receber dano - modificado para permitir dano de múltiplos zumbis"""
         if self.is_dead:
             return False
         
@@ -341,8 +339,8 @@ class Player:
             self.current_state = "dead"
             self.animation_timer = 0
             self.animation_complete = False
-            self.death_animation_complete = False  # Certificar que a animação de morte vai rodar
-            self.current_animation = self.animations[self.current_state]  # Definir animação de morte
+            self.death_animation_complete = False
+            self.current_animation = self.animations[self.current_state]  
             self.current_animation.reset()
             return True
         else:

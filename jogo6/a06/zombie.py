@@ -14,7 +14,7 @@ class Zombie:
         
         self.world_x = x
         self.world_y = y  # Usar a posição Y fornecida inicialmente
-        self.scale = 3.5 
+        self.scale = 3.7
         self.speed = 200
         self.max_health = 100
         self.health = self.max_health
