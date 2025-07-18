@@ -25,8 +25,8 @@ class Player:
         self.jump_velocity = 0
         self.gravity = 800
         self.jump_strength = -300
-        self.horizontal_velocity = 0  # Para manter velocidade horizontal durante o pulo
-        self.was_moving_when_jumped = False  # Para saber se estava se movendo quando pulou
+        self.horizontal_velocity = 0
+        self.was_moving_when_jumped = False
         self.max_health = 100
         self.health = self.max_health
         self.is_dead = False
