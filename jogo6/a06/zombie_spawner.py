@@ -122,9 +122,8 @@ class ZombieSpawner:
                             if not ammo.collected and abs(ammo.world_x - player_progress) < 2000]
     
     def spawn_ammo_pickup(self, zombie_x, zombie_y):
-        """Spawnar munição quando um zumbi morrer"""
-        # 25% de chance de spawnar munição (reduzido de 40%)
-        if random.randint(1, 100) <= 50:
+
+        if random.randint(1, 100) <= 70:
             # Calcular centro visual correto do sprite do zumbi
             # Sprite base: 128x128 pixels, escala: 4 (atualizada)
             sprite_width = int(128 * 4)
@@ -173,7 +172,7 @@ class ZombieSpawner:
                 attack_width = 150
             
         # Verificar ataques de tiro (botão esquerdo do mouse)  
-        elif player.current_state == "shot" and player.animation_timer < 800:  # Janela maior para shot
+        elif player.current_state == "shot" and player.animation_timer < 800:  
             is_attacking = True
             attack_type = "shot"
             
