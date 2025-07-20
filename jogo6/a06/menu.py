@@ -51,11 +51,11 @@ def menu(display_manager=None):
                 elif event.key == K_DOWN:
                     selected_option = (selected_option + 1) % len(options)
                 elif event.key == K_RETURN:
-                    if selected_option == 0:  # Jogar
+                    if selected_option == 0:  
                         return "game"
-                    elif selected_option == 1:  # Instruções
+                    elif selected_option == 1:  
                         return "instructions"
-                    elif selected_option == 2:  # Sair
+                    elif selected_option == 2:  
                         return "exit"
                 elif event.key == K_ESCAPE:
                     return "exit"

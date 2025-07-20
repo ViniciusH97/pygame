@@ -44,6 +44,7 @@ def game(selected_character="Raider_1", display_manager=None):
     score_manager = ScoreManager()
     
     max_camera_x = 0
+    game_over_state = False  # Flag para controlar estado do game over
     
     while running:
         dt = clock.tick(60)
@@ -55,6 +56,12 @@ def game(selected_character="Raider_1", display_manager=None):
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     return "menu"
+                # Controles da tela de game over
+                elif game_over_state and player.is_dead:
+                    if event.key == K_RETURN:
+                        return "game"  # Reiniciar jogo
+                    elif event.key == K_ESCAPE:
+                        return "menu"  # Voltar ao menu
                     
         keys = pygame.key.get_pressed()
         mouse_buttons = pygame.mouse.get_pressed()
@@ -137,6 +144,7 @@ def game(selected_character="Raider_1", display_manager=None):
         if player.is_dead: 
             # Parar a contagem do tempo
             score_manager.set_game_over()
+            game_over_state = True
             
             # Criar fundo estático escuro para game over
             overlay = pygame.Surface((window_width, window_height))
@@ -156,31 +164,38 @@ def game(selected_character="Raider_1", display_manager=None):
             try:
                 stats_font = pygame.font.SysFont("Impact", 50)  
                 small_font = pygame.font.SysFont("Impact", 35)
+                medium_font = pygame.font.SysFont("Impact", 40)
             except:
                 stats_font = pygame.font.SysFont("Arial", 40)
                 small_font = pygame.font.SysFont("Arial", 28)
+                medium_font = pygame.font.SysFont("Arial", 32)
             
-            # Pontuação final
-            final_score = stats_font.render(f"PONTUAÇÃO FINAL: {stats['score']}", True, (255, 255, 0))
-            final_score_rect = final_score.get_rect(center=(window_width // 2, window_height // 2 - 60))
-            screen.blit(final_score, final_score_rect)
+            # Pontuação Record (primeiro)
+            record_text = medium_font.render(f"RECORD: {stats['high_score']}", True, (255, 215, 0))  # Dourado
+            record_rect = record_text.get_rect(center=(window_width // 2, window_height // 2 - 80))
+            screen.blit(record_text, record_rect)
 
-            # Estatísticas detalhadas
-            stats_y = window_height // 2 + 20
-            stats_list = [
-                f"Pontuação Recorde: "
-                f"Tempo Sobrevivido: {stats['time_survived']}",
-            ]
+            # Pontuação atual (abaixo do record)
+            current_score = stats_font.render(f"PONTUAÇÃO ATUAL: {stats['score']}", True, (255, 255, 255))
+            current_score_rect = current_score.get_rect(center=(window_width // 2, window_height // 2 - 30))
+            screen.blit(current_score, current_score_rect)
+
+            # Tempo sobrevivido
+            stats_y = window_height // 2 + 30
+            time_text = f"Tempo Sobrevivido: {stats['time_survived']}"
+            time_surface = small_font.render(time_text, True, (255, 255, 255))
+            time_rect = time_surface.get_rect(center=(window_width // 2, stats_y))
+            screen.blit(time_surface, time_rect)
             
-            for i, stat in enumerate(stats_list):
-                stat_surface = small_font.render(stat, True, (255, 255, 255))
-                stat_rect = stat_surface.get_rect(center=(window_width // 2, stats_y + i * 40))
-                screen.blit(stat_surface, stat_rect)
-            
-            restart_font = pygame.font.SysFont("Impact", 24)
-            restart_text = restart_font.render("Pressione ESC para voltar ao menu", True, (200, 200, 200))
-            restart_rect = restart_text.get_rect(center=(window_width // 2, window_height - 100))
+            # Instruções de controle
+            restart_font = pygame.font.SysFont("Impact", 28)
+            restart_text = restart_font.render("Pressione ENTER para jogar novamente", True, (200, 200, 200))
+            restart_rect = restart_text.get_rect(center=(window_width // 2, window_height - 120))
             screen.blit(restart_text, restart_rect)
+            
+            menu_text = restart_font.render("Pressione ESC para voltar ao menu", True, (200, 200, 200))
+            menu_rect = menu_text.get_rect(center=(window_width // 2, window_height - 80))
+            screen.blit(menu_text, menu_rect)
         
         player.draw_screen_flash(screen)
         
