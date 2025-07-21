@@ -397,19 +397,17 @@ class Player:
         """Desenhar barra de stamina vertical ao lado da barra de vida"""
         window_height = screen.get_height()
         
-        bar_width = 20  # Aumentado de 15 para 20
-        bar_height = 200  # Aumentado de 150 para 200
-        bar_x = 50  # Ajustado de 45 para 50 devido ao aumento da largura
+        bar_width = 20  
+        bar_height = 200  
+        bar_x = 50  
         bar_y = window_height - bar_height - 60  
         
         pygame.draw.rect(screen, (0, 0, 100), (bar_x, bar_y, bar_width, bar_height))
-        
-        # Stamina - cor muda se não puder começar a correr
+    
         stamina_percentage = self.current_stamina / self.max_stamina
         current_stamina_height = int(bar_height * stamina_percentage)
-        stamina_y = bar_y + (bar_height - current_stamina_height)  # Preencher de baixo para cima
+        stamina_y = bar_y + (bar_height - current_stamina_height)  
         
-        # Cor da stamina baseada na capacidade de correr
         can_start_running = self.current_stamina > self.max_stamina / 2
         if can_start_running:
             stamina_color = (0, 150, 255)  # Azul claro (pode começar a correr)
