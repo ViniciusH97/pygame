@@ -20,12 +20,10 @@ class ScoreManager:
         self.high_score = self.load_high_score()
         
     def add_zombie_kill(self):
-        """Adicionar pontos por matar um zumbi"""
         self.zombies_killed += 1
         self.score += self.points_per_zombie
         
     def update(self, dt):
-        """Atualizar tempo sobrevivido e bônus de tempo"""
         if not self.game_over:  # Só atualizar se o jogo não acabou
             current_time = time.time()
             self.time_survived = current_time - self.start_time
@@ -37,7 +35,6 @@ class ScoreManager:
                 self.last_time_bonus = minutes_survived
     
     def set_game_over(self):
-        """Parar a contagem do tempo quando o jogo acabar"""
         if not self.game_over:
             self.game_over = True
             # Congelar o tempo no momento da morte
@@ -50,7 +47,6 @@ class ScoreManager:
                 self.save_high_score()
     
     def load_high_score(self):
-        """Carregar o recorde salvo"""
         try:
             # Usar o diretório do script para salvar o arquivo
             script_dir = os.path.dirname(__file__)
@@ -65,7 +61,6 @@ class ScoreManager:
         return 0
     
     def save_high_score(self):
-        """Salvar o novo recorde"""
         try:
             # Usar o diretório do script para salvar o arquivo
             script_dir = os.path.dirname(__file__)
@@ -77,13 +72,11 @@ class ScoreManager:
             pass
     
     def get_time_survived_formatted(self):
-        """Retornar tempo sobrevivido formatado"""
         minutes = int(self.time_survived // 60)
         seconds = int(self.time_survived % 60)
         return f"{minutes:02d}:{seconds:02d}"
     
     def get_stats(self):
-        """Retornar estatísticas completas"""
         return {
             'score': self.score,
             'high_score': self.high_score,

@@ -95,7 +95,7 @@ class Zombie:
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),    
                 }
                 
-                self.speed = 300 # Aumentado significativamente de 300 para 500
+                self.speed = 300 
                 self.attack_damage = 30
                 self.max_health = 150
                 self.health = self.max_health
@@ -156,7 +156,7 @@ class Zombie:
                 if self.current_state == "dead":
                     self.is_dead = True
                     self.death_animation_complete = True
-                    self.death_timer = 0  # Inicializar timer quando animação de morte termina
+                    self.death_timer = 0  
                     # Manter o último frame da animação de morte
                     self.current_animation.current_frame = len(self.current_animation.frames) - 1
                     return
@@ -219,7 +219,7 @@ class Zombie:
                 
                 # Pode atacar se estiver perto horizontalmente E verticalmente do player real
                 can_attack = (distance_horizontal <= self.attack_range and 
-                             distance_vertical <= 40 and  # Tolerância maior para altura
+                             distance_vertical <= 40 and 
                              self.attack_timer >= self.attack_cooldown)
                 
                 if can_attack:

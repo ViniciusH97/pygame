@@ -423,20 +423,19 @@ class Player:
         """Desenhar contador de munição em texto ao lado das barras"""
         window_height = screen.get_height()
         
-        # Posição ao lado das barras de vida e stamina - ajustada para novas barras maiores
-        text_x = 100  # Mais à direita devido às barras maiores
-        text_y = window_height - 140  # Ajustado para as barras maiores
+        text_x = 100  
+        text_y = window_height - 140 
         
         # Fonte maior para o contador
-        font = pygame.font.SysFont("Arial", 32)  # Aumentado de 24 para 32
+        font = pygame.font.SysFont("Arial", 32)  
         ammo_text = f"{self.current_ammo}/{self.reserve_ammo}"
         
         if self.is_reloading:
-            color = (255, 165, 0)  # Laranja para recarregando
+            color = (255, 165, 0)  # Laranja enquanto estiver carregando
         elif self.current_ammo == 0:
-            color = (255, 0, 0)    # Vermelho para sem munição
+            color = (255, 0, 0)    # Vermelho se estiver sem munição
         else:
-            color = (255, 255, 255)  # Branco normal
+            color = (255, 255, 255)  
         
         text_surface = font.render(ammo_text, True, color)
         
