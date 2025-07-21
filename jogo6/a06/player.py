@@ -46,8 +46,8 @@ class Player:
         # Sistema de stamina
         self.max_stamina = 100
         self.current_stamina = self.max_stamina
-        self.stamina_regen_rate = 20  # Reduzido de 30 para 20 pontos por segundo
-        self.run_stamina_cost = 35  # Reduzido de 50 para 35 pontos por segundo ao correr
+        self.stamina_regen_rate = 20  
+        self.run_stamina_cost = 35  
         
         # Movement tracking for zombie AI
         self.last_movement = 0
