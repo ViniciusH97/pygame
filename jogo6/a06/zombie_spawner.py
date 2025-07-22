@@ -113,8 +113,7 @@ class ZombieSpawner:
                             if not ammo.collected and abs(ammo.world_x - player_progress) < 2000]
     
     def spawn_ammo_pickup(self, zombie_x, zombie_y):
-
-        if random.randint(1, 100) <= 70:
+        if random.randint(1, 100) <= 50: 
             sprite_width = int(128 * 4)
             sprite_height = int(128 * 4)
             

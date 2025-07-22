@@ -453,3 +453,59 @@ class Player:
             flash_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
             flash_surface.fill((255, 0, 0, flash_alpha))
             screen.blit(flash_surface, (0, 0))
+
+    def get_current_spawn_rate(self):
+        """Get current spawn rate based on score - mais agressivo a cada 100 pontos"""
+        # Reduzir spawn rate mais drasticamente a cada 100 pontos
+        points_per_level = 100
+        current_level = self.score // points_per_level
+        
+        # Redução mais agressiva: 100ms por nível (cada 100 pontos)
+        rate_decrease_per_level = 100
+        current_rate = self.base_spawn_rate - (current_level * rate_decrease_per_level)
+        
+        return max(current_rate, self.min_spawn_rate)
+
+    def draw_score_and_record(self, screen):
+        """Draw score, high score, and record message"""
+        font = pygame.font.SysFont("Arial", 24)
+        
+        # Draw current score
+        score_text = f"Score: {self.score}"
+        score_surface = font.render(score_text, True, (255, 255, 255))
+        screen.blit(score_surface, (10, 10))
+        
+        # Draw high score
+        high_score_text = f"High Score: {self.high_score}"
+        high_score_surface = font.render(high_score_text, True, (255, 255, 0))
+        screen.blit(high_score_surface, (10, 40))
+        
+        # Draw spawn level indicator - mostrar nível de dificuldade baseado em pontuação
+        difficulty_level = self.score // 100
+        level_text = f"Difficulty Level: {difficulty_level}"
+        level_surface = font.render(level_text, True, (0, 255, 255))
+        screen.blit(level_surface, (10, 70))
+        
+        # Mostrar número atual de zumbis (informativo)
+        zombie_info_text = f"Zombie Target: {min(30, 3 + difficulty_level)}"
+        zombie_info_surface = font.render(zombie_info_text, True, (255, 165, 0))
+        screen.blit(zombie_info_surface, (10, 100))
+        
+        # Draw record broken message during gameplay
+        if self.record_message_timer > 0:
+            big_font = pygame.font.SysFont("Arial", 48, bold=True)
+            record_text = "NEW RECORD!"
+            record_surface = big_font.render(record_text, True, (255, 215, 0))  # Gold color
+            
+            # Center the message on screen
+            screen_width = screen.get_width()
+            screen_height = screen.get_height()
+            text_rect = record_surface.get_rect()
+            text_rect.center = (screen_width // 2, screen_height // 3)
+            
+            # Add a background for better visibility
+            background_rect = text_rect.inflate(40, 20)
+            pygame.draw.rect(screen, (0, 0, 0, 180), background_rect)
+            pygame.draw.rect(screen, (255, 215, 0), background_rect, 3)
+            
+            screen.blit(record_surface, text_rect)

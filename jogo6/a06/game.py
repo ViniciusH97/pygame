@@ -127,9 +127,6 @@ def game(selected_character="Raider_1", display_manager=None):
         score_text = f"PONTUAÇÃO: {score_manager.score}"
         score_surface = score_font.render(score_text, True, (255, 255, 255))  # Branco
         
-        # Informações de dificuldade baseada na pontuação
-        # Sistema de debug removido
-        
         score_x = window_width - score_surface.get_width() - 20
         score_y = window_height - score_surface.get_height() - 60  # Espaço para duas linhas
         screen.blit(score_surface, (score_x, score_y))
