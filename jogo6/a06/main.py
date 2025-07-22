@@ -63,15 +63,12 @@ def main():
                 current_state = instructions(display_manager)
             elif current_state == "exit":
                 break
-    except KeyboardInterrupt:
-        print("\nJogo interrompido pelo usuário")
     except Exception as e:
         print(f"Erro no jogo: {e}")
         import traceback
         traceback.print_exc()
     finally:
-        pygame.quit()
-        print("Jogo encerrado")
+        pygame.quit() # jogo encerrado
 
 if __name__ == "__main__":
     main()

@@ -158,10 +158,10 @@ def game(selected_character="Raider_1", display_manager=None):
             # Criar fundo estático escuro para game over
             overlay = pygame.Surface((window_width, window_height))
             overlay.fill((0, 0, 0))
-            overlay.set_alpha(200)  # Semi-transparente
+            overlay.set_alpha(200)
             screen.blit(overlay, (0, 0))
             
-            # Título Game Over
+            # Título na tela de game over
             death_font = pygame.font.SysFont("Impact", 100)
             death_text = death_font.render("GAME OVER", True, (255, 0, 0))
             death_rect = death_text.get_rect(center=(window_width // 2, window_height // 4))
@@ -174,14 +174,15 @@ def game(selected_character="Raider_1", display_manager=None):
                 stats_font = pygame.font.SysFont("Impact", 50)  
                 small_font = pygame.font.SysFont("Impact", 35)
                 medium_font = pygame.font.SysFont("Impact", 40)
+                record_font = pygame.font.SysFont("Impact", 60)  
             except:
                 stats_font = pygame.font.SysFont("Arial", 40)
                 small_font = pygame.font.SysFont("Arial", 28)
                 medium_font = pygame.font.SysFont("Arial", 32)
+                record_font = pygame.font.SysFont("Arial", 48) 
             
-            # Pontuação Record (primeiro)
-            record_text = medium_font.render(f"RECORD: {stats['high_score']}", True, (255, 215, 0))  # Dourado
-            record_rect = record_text.get_rect(center=(window_width // 2, window_height // 2 - 80))
+            record_text = record_font.render(f"RECORD: {stats['high_score']}", True, (255, 215, 0))  
+            record_rect = record_text.get_rect(center=(window_width // 2, window_height // 2 - 100))
             screen.blit(record_text, record_rect)
 
             # Pontuação atual (abaixo do record)

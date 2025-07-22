@@ -15,7 +15,7 @@ class Zombie:
         self.world_x = x
         self.world_y = y  # Usar a posição Y fornecida inicialmente
         self.scale = 3.7
-        self.speed = 200
+        self.speed = 300
         self.max_health = 100
         self.health = self.max_health
         self.facing_right = False
@@ -24,7 +24,7 @@ class Zombie:
         self.death_animation_complete = False  
         self.death_timer = 0  # Timer para controlar quando remover o zumbi morto
         self.attack_timer = 0
-        self.attack_cooldown = 400  # Reduzir cooldown para ataques mais frequentes
+        self.attack_cooldown = 400  # cooldown de ataque
         self.attack_range = 100  # Aumentar alcance de ataque
         self.attack_damage = 20
         self.animation_timer = 0
@@ -65,7 +65,7 @@ class Zombie:
                 self.animations = {
                     "idle": AnimatedSprite(os.path.join(zombie_dir, "Idle.png"), 128, 128, 6, 300),
                     "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 10, 150),  
-                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 150),  
+                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 130),  
                     "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),  
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),  
                 }
@@ -74,17 +74,17 @@ class Zombie:
             elif zombie_type == "Zombie_2":
                 self.animations = {
                     "idle": AnimatedSprite(os.path.join(zombie_dir, "Idle.png"), 128, 128, 6, 300),  
-                    "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 10, 120),  # Reduzido de 200 para 120 (mais rápido)
-                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 150),  
+                    "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 10, 120),  
+                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 5, 100),  
                     "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),  
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),
                 }
                 
-                self.speed = 500 # Aumentado de 700 para 400 (mais equilibrado)
-                self.attack_damage = 25
+                self.speed = 700
+                self.attack_damage = 20
                 self.max_health = 130
                 self.health = self.max_health
-                self.attack_cooldown = 400  
+                self.attack_cooldown = 200
 
             elif zombie_type == "Zombie_3":
                 self.animations = {
@@ -97,7 +97,7 @@ class Zombie:
                 
                 self.speed = 300 
                 self.attack_damage = 30
-                self.max_health = 150
+                self.max_health = 200
                 self.health = self.max_health
                 self.attack_range = 100 
                 self.attack_cooldown = 450  
@@ -106,17 +106,17 @@ class Zombie:
                 self.animations = {
                     "idle": AnimatedSprite(os.path.join(zombie_dir, "Idle.png"), 128, 128, 7, 300),     
                     "walk": AnimatedSprite(os.path.join(zombie_dir, "Walk.png"), 128, 128, 12, 150),    
-                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 10, 100), 
+                    "attack": AnimatedSprite(os.path.join(zombie_dir, "Attack.png"), 128, 128, 10, 80),
                     "hurt": AnimatedSprite(os.path.join(zombie_dir, "Hurt.png"), 128, 128, 4, 150),     
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),     
                 }
                 
                 self.speed = 350 
-                self.attack_damage = 40  
-                self.max_health = 200  
+                self.attack_damage = 30  
+                self.max_health = 150
                 self.health = self.max_health
                 self.attack_range = 120  
-                self.attack_cooldown = 300  
+                self.attack_cooldown = 200 
 
         except Exception as e:
             fallback_surface = pygame.Surface((128, 128))
@@ -145,11 +145,35 @@ class Zombie:
         if self.is_dead and self.death_animation_complete:
             return  
         
+        # se o player morrer os zumbis ficam em idle
+        if player.is_dead:
+            self.current_state = "idle"
+            self.current_animation = self.animations["idle"]
+            self.current_animation.update(dt)
+            return
+        
         self.attack_timer += dt
         self.reaction_timer += dt
     
         if self.current_state in ["attack", "hurt", "dead"]:
             self.animation_timer += dt
+            
+            # DURANTE ATAQUE, CONTINUAR PERSEGUINDO O PLAYER
+            if self.current_state == "attack" and not self.is_dead:
+                # Calcular movimento em direção ao player durante ataque
+                distance_to_player_x = player.world_x - self.world_x
+                distance_to_player_y = player.world_y - self.world_y
+                distance_to_player = (distance_to_player_x**2 + distance_to_player_y**2)**0.5
+                
+                if distance_to_player > 10:  # Continuar perseguindo se não estiver muito próximo
+                    move_x = (distance_to_player_x / distance_to_player) * (self.speed * 0.7) * dt / 1000  # 70% da velocidade
+                    self.world_x += move_x
+                    self.facing_right = move_x > 0
+                    
+                    # Movimento Y durante ataque também
+                    if abs(distance_to_player_y) > 15:
+                        move_y = (distance_to_player_y / abs(distance_to_player_y)) * min(self.speed * 0.5 * dt / 1000, abs(distance_to_player_y))
+                        self.world_y += move_y
             
             animation_duration = len(self.current_animation.frames) * self.current_animation.frame_duration
             if self.animation_timer >= animation_duration:
@@ -169,8 +193,8 @@ class Zombie:
                 elif self.current_state == "attack":
                     distance_x = abs(self.world_x - player.world_x)
                     distance_y = abs(self.world_y - player.world_y)
-                    # Ataque funciona se estiver perto horizontal E verticalmente
-                    if distance_x <= self.attack_range and distance_y <= 40:
+                    # Ataque funciona se estiver perto horizontal E verticalmente - hitbox aumentado
+                    if distance_x <= self.attack_range + 30 and distance_y <= 60:  # Aumentado de 40 para 60
                         player.take_damage(self.attack_damage, self.zombie_id)
                     
                     if distance_x <= self.attack_range + 20:
@@ -218,8 +242,8 @@ class Zombie:
                 distance_vertical = abs(distance_to_player_y)
                 
                 # Pode atacar se estiver perto horizontalmente E verticalmente do player real
-                can_attack = (distance_horizontal <= self.attack_range and 
-                             distance_vertical <= 40 and 
+                can_attack = (distance_horizontal <= self.attack_range + 20 and 
+                             distance_vertical <= 60 and  # Aumentado de 40 para 60
                              self.attack_timer >= self.attack_cooldown)
                 
                 if can_attack:
@@ -228,6 +252,12 @@ class Zombie:
                     self.animation_timer = 0
                     self.animation_complete = False
                     self.current_animation.reset()
+                    
+                    # CONTINUAR MOVIMENTO DURANTE ATAQUE para acompanhar o player
+                    if distance_to_target > 10:
+                        move_x = (distance_to_target_x / distance_to_target) * (self.speed * 0.5) * dt / 1000  # Velocidade reduzida durante ataque
+                        self.world_x += move_x
+                        self.facing_right = move_x > 0
                     
                 elif distance_to_target > 20:  # Usar distância ao alvo, não ao player
                     self.current_state = "walk"

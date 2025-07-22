@@ -23,8 +23,10 @@ class Player:
         self.is_jumping = False
         self.jump_start_y = y
         self.jump_velocity = 0
-        self.gravity = 800
-        self.jump_strength = -300
+        self.gravity = 1200  # Aumentado para pulo mais realista
+        self.jump_strength = -400  # Força de pulo ajustada
+        self.ground_y = y  # Posição do chão
+        self.on_ground = True  # Se está no chão
         self.horizontal_velocity = 0
         self.was_moving_when_jumped = False
         self.max_health = 100
@@ -183,11 +185,16 @@ class Player:
                     self.current_animation.reset()
             
             if event.type == KEYDOWN:
-                if event.key == K_SPACE and self.current_state in ["idle", "walk", "run"] and not self.is_jumping:
+                if event.key == K_SPACE and self.current_state in ["idle", "walk", "run"] and self.on_ground:
                     self.current_state = "jump"
                     self.is_jumping = True
-                    self.jump_start_y = self.world_y
+                    self.on_ground = False
                     self.jump_velocity = self.jump_strength
+                    # Preservar movimento horizontal durante o pulo
+                    if keys[K_a] or keys[K_LEFT] or keys[K_d] or keys[K_RIGHT]:
+                        self.was_moving_when_jumped = True
+                    else:
+                        self.was_moving_when_jumped = False
                     self.animation_timer = 0
                     self.animation_complete = False
                     self.current_animation.reset()
@@ -220,8 +227,8 @@ class Player:
                     self.current_animation.current_frame = len(self.current_animation.frames) - 1
                     return movement  # Não mudar estado, permanecer morto
                 elif self.current_state == "jump":
-                    self.is_jumping = False
-                    self.world_y = self.jump_start_y  # Resetar para o chão
+                    # Permitir que o jogador complete o pulo naturalmente
+                    pass  # A física do pulo será gerenciada separadamente
                 elif self.current_state == "recharge":
                     # Finalizar recarga: transferir munição da reserva para o pente
                     ammo_needed = self.max_ammo - self.current_ammo
@@ -232,21 +239,51 @@ class Player:
                 elif self.current_state == "hurt":
                     # Após animação de dano, voltar ao estado de idle
                     pass  # Continuará para o estado idle abaixo
-                self.current_state = "idle"
-                self.animation_complete = True
-                self.animation_timer = 0
+                
+                # Só mudar para idle se não estiver pulando
+                if not self.is_jumping:
+                    self.current_state = "idle"
+                    self.animation_complete = True
+                    self.animation_timer = 0
         
-        # física do pulo do player 
+        # FÍSICA MELHORADA DO PULO
         if self.is_jumping:
+            # Aplicar gravidade
             self.jump_velocity += self.gravity * dt / 1000
+            
+            # Atualizar posição Y
+            old_y = self.world_y
             self.world_y += self.jump_velocity * dt / 1000
             
-            # após o pulo ser realizado o personagem volta para a mesma posição
-            if self.world_y >= self.jump_start_y:
-                self.world_y = self.jump_start_y
+            # Verificar se aterrissou
+            if self.world_y >= self.ground_y:
+                self.world_y = self.ground_y
                 self.is_jumping = False
+                self.on_ground = True
+                self.jump_velocity = 0
+                
+                # Se a animação de pulo terminou, voltar ao estado apropriado
                 if self.current_state == "jump":
-                    self.current_state = "idle"
+                    # Verificar se está se movendo para definir o próximo estado
+                    is_currently_moving = (keys[K_a] or keys[K_LEFT] or 
+                                         keys[K_d] or keys[K_RIGHT] or 
+                                         keys[K_w] or keys[K_UP] or 
+                                         keys[K_s] or keys[K_DOWN])
+                    
+                    if is_currently_moving:
+                        # Verificar se está correndo
+                        can_run = self.current_stamina > 0 and (self.current_stamina > self.max_stamina / 2 or 
+                                 (hasattr(self, '_was_running') and self._was_running and self.current_stamina > 0))
+                        
+                        if (keys[K_LSHIFT] or keys[K_RSHIFT]) and can_run:
+                            self.current_state = "run"
+                        else:
+                            self.current_state = "walk"
+                    else:
+                        self.current_state = "idle"
+                    
+                    self.animation_timer = 0
+                    self.animation_complete = True
         
         # Gerenciar stamina - mover antes do movimento para sincronizar
         if is_running and is_moving and self.current_stamina > 0:
@@ -256,28 +293,34 @@ class Player:
             # Regenerar stamina quando não está correndo
             self.current_stamina = min(self.max_stamina, self.current_stamina + self.stamina_regen_rate * dt / 1000)
         
-        # Handle movement only if not performing actions
-        if self.current_state in ["idle", "walk", "run"]:
+        # Handle movement - permitir movimento horizontal mesmo durante pulo
+        horizontal_movement = 0
+        if self.current_state in ["idle", "walk", "run"] or self.is_jumping:
             if keys[K_a] or keys[K_LEFT]:
                 # Impedir movimento para a esquerda se já estiver no limite
                 if self.world_x > 0:
-                    movement -= current_speed * dt / 1000
+                    horizontal_movement -= current_speed * dt / 1000
                     self.facing_right = False
                     is_moving = True
                 
             if keys[K_d] or keys[K_RIGHT]:
-                movement += current_speed * dt / 1000
+                horizontal_movement += current_speed * dt / 1000
                 self.facing_right = True
                 is_moving = True
-            if keys[K_w] or keys[K_UP]:
-                self.world_y -= current_speed * dt / 1000
-                is_moving = True
                 
-            if keys[K_s] or keys[K_DOWN]:
-                self.world_y += current_speed * dt / 1000
-                is_moving = True
-                
-            self.world_x += movement
+            # Movimento vertical apenas quando não está pulando
+            if not self.is_jumping:
+                if keys[K_w] or keys[K_UP]:
+                    self.world_y -= current_speed * dt / 1000
+                    is_moving = True
+                    
+                if keys[K_s] or keys[K_DOWN]:
+                    self.world_y += current_speed * dt / 1000
+                    is_moving = True
+            
+            # Aplicar movimento horizontal
+            self.world_x += horizontal_movement
+            movement = horizontal_movement
             
             # Garantir que o player não saia da borda esquerda
             if self.world_x < 0:
@@ -287,16 +330,24 @@ class Player:
             # Rastrear movimento para IA dos zumbis
             self.last_movement = movement
             
-            if is_moving:
-                if is_running:
-                    self.current_state = "run"
+            # Definir estados de animação apenas se não estiver pulando
+            if not self.is_jumping and self.current_state in ["idle", "walk", "run"]:
+                if is_moving:
+                    if is_running:
+                        self.current_state = "run"
+                    else:
+                        self.current_state = "walk"
                 else:
-                    self.current_state = "walk"
-            else:
-                self.current_state = "idle"       
+                    self.current_state = "idle"       
         self.world_x = max(0, self.world_x)
         
-        self.world_y = max(200, min(self.world_y, 400))
+        # Ajustar ground_y baseado na posição atual quando não está pulando
+        if not self.is_jumping:
+            self.ground_y = max(200, min(self.world_y, 400))
+            self.world_y = self.ground_y
+        else:
+            # Durante o pulo, manter limites para não sair da área de jogo
+            self.world_y = max(50, min(self.world_y, 400))
 
         if self.is_reloading and self.current_state != "recharge":
             self.is_reloading = False

@@ -14,7 +14,7 @@ class ScoreManager:
         
         # Pontuação
         self.points_per_zombie = 10
-        self.points_per_minute = 5
+        self.points_per_minute = 50
         
         # Sistema de records
         self.high_score = self.load_high_score()
