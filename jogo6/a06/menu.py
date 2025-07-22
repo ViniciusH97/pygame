@@ -86,7 +86,13 @@ def menu(display_manager=None):
         instruction_font = pygame.font.SysFont("Arial", 24)
         instructions = "Use as setinhas para CIMA/BAIXO para navegar pelas opções, Pressione ENTER para selecionar ou ESC para sair"
         inst_text = instruction_font.render(instructions, True, (200, 200, 200))
-        screen.blit(inst_text, (window_width // 2 - inst_text.get_width() // 2, window_height - 50))
+        screen.blit(inst_text, (window_width // 2 - inst_text.get_width() // 2, window_height - 80))
+        
+        # Créditos do desenvolvedor
+        credit_font = pygame.font.SysFont("Arial", 18)
+        credit_text = "Criado por Vinicius Lima ©"
+        credit_surface = credit_font.render(credit_text, True, (150, 150, 150))
+        screen.blit(credit_surface, (window_width // 2 - credit_surface.get_width() // 2, window_height - 40))
         
         pygame.display.flip()
 

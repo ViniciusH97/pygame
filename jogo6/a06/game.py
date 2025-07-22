@@ -31,6 +31,7 @@ def create_game_background():
 def game(selected_character="Raider_1", display_manager=None):
     clock = pygame.time.Clock()
     running = True
+    paused = False  # Variável para controlar o estado da pausa
     screen = pygame.display.get_surface()
     window_width = screen.get_width()
     window_height = screen.get_height()
@@ -54,7 +55,13 @@ def game(selected_character="Raider_1", display_manager=None):
             if event.type == QUIT:
                 return "exit"
             if event.type == KEYDOWN:
-                if event.key == K_ESCAPE:
+                # Controles de pausa (apenas quando não está game over)
+                if not game_over_state and not player.is_dead:
+                    if event.key == K_ESCAPE or event.key == K_RETURN:
+                        paused = not paused  # Alternar estado da pausa
+                        continue
+                
+                if event.key == K_ESCAPE and not paused:
                     return "menu"
                 # Controles da tela de game over
                 elif game_over_state and player.is_dead:
@@ -63,20 +70,25 @@ def game(selected_character="Raider_1", display_manager=None):
                     elif event.key == K_ESCAPE:
                         return "menu"  # Voltar ao menu
                     
-        keys = pygame.key.get_pressed()
-        mouse_buttons = pygame.mouse.get_pressed()
-        player.update(keys, dt, mouse_buttons, events)
-        
-        score_manager.update(dt)
-        zombie_spawner.update(player, dt, score_manager)
-        zombie_spawner.check_player_attacks(player, score_manager)
-        
-        # Câmera só pode avançar, nunca voltar
-        current_camera_x = max(0, player.world_x - window_width // 2)
-        camera_x = max(max_camera_x, current_camera_x)
-        max_camera_x = camera_x  
-        
-        game_background.update(dt, camera_x)
+        # Só atualizar o jogo se não estiver pausado
+        if not paused:
+            keys = pygame.key.get_pressed()
+            mouse_buttons = pygame.mouse.get_pressed()
+            player.update(keys, dt, mouse_buttons, events)
+            
+            score_manager.update(dt)
+            zombie_spawner.update(player, dt, score_manager)
+            zombie_spawner.check_player_attacks(player, score_manager)
+            
+            # Câmera só pode avançar, nunca voltar
+            current_camera_x = max(0, player.world_x - window_width // 2)
+            camera_x = max(max_camera_x, current_camera_x)
+            max_camera_x = camera_x  
+            
+            game_background.update(dt, camera_x)
+        else:
+            # Quando pausado, manter a câmera na posição atual
+            camera_x = max_camera_x
     
         screen.fill((0, 0, 0))
         game_background.draw(screen)
@@ -193,6 +205,32 @@ def game(selected_character="Raider_1", display_manager=None):
             menu_text = restart_font.render("Pressione ESC para voltar ao menu", True, (200, 200, 200))
             menu_rect = menu_text.get_rect(center=(window_width // 2, window_height - 80))
             screen.blit(menu_text, menu_rect)
+        
+        # Tela de pausa
+        if paused and not game_over_state and not player.is_dead:
+            # Criar overlay escuro
+            overlay = pygame.Surface((window_width, window_height))
+            overlay.fill((0, 0, 0))
+            overlay.set_alpha(150)  # Semi-transparente
+            screen.blit(overlay, (0, 0))
+            
+            # Carregar fonte personalizada para "JOGO PAUSADO"
+            try:
+                BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+                font_path = os.path.join(BASE_DIR, "imagens", "fonts", "Zombie_Holocaust.ttf")
+                pause_font = pygame.font.Font(font_path, 100)
+            except:
+                pause_font = pygame.font.SysFont("Impact", 100)
+            
+            pause_text = pause_font.render("JOGO PAUSADO", True, (255, 0, 0))  # Vermelho
+            pause_rect = pause_text.get_rect(center=(window_width // 2, window_height // 2))
+            screen.blit(pause_text, pause_rect)
+            
+            # Instruções para despausar
+            instruction_font = pygame.font.SysFont("Arial", 30)
+            instruction_text = instruction_font.render("Pressione ENTER ou ESC para continuar", True, (255, 255, 255))
+            instruction_rect = instruction_text.get_rect(center=(window_width // 2, window_height // 2 + 100))
+            screen.blit(instruction_text, instruction_rect)
         
         player.draw_screen_flash(screen)
         
