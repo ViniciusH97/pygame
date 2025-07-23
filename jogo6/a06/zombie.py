@@ -80,7 +80,7 @@ class Zombie:
                     "dead": AnimatedSprite(os.path.join(zombie_dir, "Dead.png"), 128, 128, 5, 200),
                 }
                 
-                self.speed = 700
+                self.speed = 500
                 self.attack_damage = 20
                 self.max_health = 130
                 self.health = self.max_health
