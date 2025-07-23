@@ -10,7 +10,7 @@ class Player:
         self.world_y = y
         self.speed = 200
         self.run_speed = 400
-        self.scale = 4
+        self.scale = 3.8
         hitbox_width = int(128 * self.scale * 0.2)
         hitbox_height = int(128 * self.scale * 0.4)
         self.rect = pygame.Rect(x, y, hitbox_width, hitbox_height)
@@ -55,6 +55,12 @@ class Player:
         self.last_movement = 0
         
         self.zombie_attacks_received = {} 
+        
+        # Add attack system
+        self.attack_damage = 25  # Damage per melee attack
+        self.attack_range = 80   # Range of melee attacks - reduced from 120 to 80
+        self.attack_cooldown = 0  # Prevent multiple hits from same attack
+        self.current_attack_targets = set()  # Track targets hit in current attack
     
         # Setup paths
         BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -122,7 +128,10 @@ class Player:
         is_moving = False
         is_running = False
         
-        # Verificar se está correndo ANTES de calcular velocidade
+        # Update attack cooldown
+        if self.attack_cooldown > 0:
+            self.attack_cooldown -= dt
+        
         if keys[K_w] or keys[K_UP] or keys[K_s] or keys[K_DOWN] or keys[K_a] or keys[K_LEFT] or keys[K_d] or keys[K_RIGHT]:
             is_moving = True
             # Pode correr se: tem stamina E (stamina > 50% OU já estava correndo)
@@ -176,6 +185,8 @@ class Player:
                     self.animation_timer = 0
                     self.animation_complete = False
                     self.current_animation.reset()
+                    self.current_attack_targets.clear()
+                    self.attack_cooldown = 300  
                 
                 elif event.button == 1 and self.current_state in ["idle", "walk", "run"] and self.current_ammo > 0 and not self.is_reloading:  # Botão esquerdo do mouse
                     self.current_state = "shot"
@@ -327,6 +338,10 @@ class Player:
                 self.world_x = 0
                 movement = 0  # Cancelar movimento para a esquerda
             
+            # UPDATE HITBOX POSITION - This was missing!
+            self.rect.x = self.world_x
+            self.rect.y = self.world_y
+            
             # Rastrear movimento para IA dos zumbis
             self.last_movement = movement
             
@@ -355,7 +370,93 @@ class Player:
         self.current_animation = self.animations[self.current_state]
         self.current_animation.update(dt)
         return movement
+    
+    def get_attack_hitbox(self):
+        if self.current_state not in ["attack_1", "attack_2"]:
+            return None
         
+        attack_frames = [2, 3, 4] if self.current_state == "attack_1" else [1, 2]
+        current_frame = self.current_animation.current_frame
+        
+        if current_frame not in attack_frames:
+            return None
+    
+        player_visual_center_x = self.world_x + (128 * self.scale) // 2
+        player_visual_center_y = self.world_y + (128 * self.scale) // 2
+        
+        attack_width = self.attack_range
+        attack_height = int(128 * self.scale * 1.2) 
+        
+        if self.facing_right:
+            attack_x = player_visual_center_x - 10  
+        else:
+            attack_x = player_visual_center_x - attack_width + 10  
+        
+        attack_y = player_visual_center_y - attack_height // 2
+        
+        return pygame.Rect(attack_x, attack_y, attack_width, attack_height)
+    
+    def can_attack_zombie(self, zombie):
+        if self.current_state not in ["attack_1", "attack_2"]:
+            return False
+        
+        if self.attack_cooldown > 0:
+            return False
+        
+        zombie_id = id(zombie)
+        if zombie_id in self.current_attack_targets:
+            return False
+    
+        zombie_visual_center_x = zombie.world_x + (128 * zombie.scale) // 2
+        zombie_visual_center_y = zombie.world_y + (128 * zombie.scale) // 2
+        player_center_x = self.world_x + (128 * self.scale) // 2
+        player_center_y = self.world_y + (128 * self.scale) // 2
+        
+        dx = zombie_visual_center_x - player_center_x
+        dy = zombie_visual_center_y - player_center_y
+        distance = (dx**2 + dy**2)**0.5
+        
+        if self.facing_right and dx <= 5: 
+            return False
+        elif not self.facing_right and dx >= -5:
+            return False
+    
+        max_distance = self.attack_range + (128 * zombie.scale) // 2
+        if distance > max_distance:
+            return False
+        
+        max_vertical_distance = (128 * self.scale) // 2 + (128 * zombie.scale) // 2
+        if abs(dy) > max_vertical_distance:
+            return False
+
+        attack_hitbox = self.get_attack_hitbox()
+        if attack_hitbox is None:
+            return False
+        
+        zombie_collision_size_x = int(128 * zombie.scale * 0.8)
+        zombie_collision_size_y = int(128 * zombie.scale * 0.9)
+        zombie_rect = pygame.Rect(
+            zombie_visual_center_x - zombie_collision_size_x // 2,
+            zombie_visual_center_y - zombie_collision_size_y // 2,
+            zombie_collision_size_x,
+            zombie_collision_size_y
+        )
+        
+        return attack_hitbox.colliderect(zombie_rect)
+
+    def attack_zombie(self, zombie):
+        if not self.can_attack_zombie(zombie):
+            return False
+        
+        zombie_id = id(zombie)
+        self.current_attack_targets.add(zombie_id)
+      
+        if hasattr(zombie, 'take_damage'):
+            zombie.take_damage(self.attack_damage)
+            return True
+        
+        return False
+
     def take_damage(self, damage, zombie_id=None):
         if self.is_dead:
             return False
@@ -366,7 +467,7 @@ class Player:
             
             # Verificar se este zumbi específico atacou recentemente
             if (zombie_id in self.zombie_attacks_received and 
-                current_time - self.zombie_attacks_received[zombie_id] < 300):  # 300ms por zumbi - reduzido de 500ms
+                current_time - self.zombie_attacks_received[zombie_id] < 300): 
                 return False
             
             # Registrar o ataque deste zumbi
@@ -405,11 +506,60 @@ class Player:
             
             return False
 
+    def get_attack_position_for_zombie(self, zombie):
+        """Get the ideal position for a zombie to attack the player without overlapping"""
+        # Calculate the minimum distance needed to avoid overlap
+        player_radius = (128 * self.scale * 0.4) // 2  # Use actual hitbox size
+        zombie_radius = (128 * zombie.scale * 0.4) // 2  # Use actual hitbox size
+        min_distance = player_radius + zombie_radius + 40  # Increased gap for better gameplay
+        
+        # Calculate direction from player to zombie
+        dx = zombie.world_x - self.world_x
+        dy = zombie.world_y - self.world_y
+        distance = (dx**2 + dy**2)**0.5
+        
+        if distance == 0:
+            # If zombie is exactly on player, push it in a random direction
+            import random
+            angle = random.uniform(0, 2 * 3.14159)
+            dx = min_distance * math.cos(angle)
+            dy = min_distance * math.sin(angle)
+        else:
+            # Normalize direction
+            dx_norm = dx / distance
+            dy_norm = dy / distance
+            dx = dx_norm * min_distance
+            dy = dy_norm * min_distance
+        
+        # Calculate ideal attack position
+        ideal_x = self.world_x + dx
+        ideal_y = self.world_y + dy
+        
+        return ideal_x, ideal_y
+    
+    def is_zombie_in_attack_range(self, zombie):
+        """Check if zombie is close enough to attack player (but not overlapping)"""
+        player_center_x = self.world_x + (128 * self.scale) // 2
+        player_center_y = self.world_y + (128 * self.scale) // 2
+        zombie_center_x = zombie.world_x + (128 * zombie.scale) // 2
+        zombie_center_y = zombie.world_y + (128 * zombie.scale) // 2
+        
+        dx = zombie_center_x - player_center_x
+        dy = zombie_center_y - player_center_y
+        distance = (dx**2 + dy**2)**0.5
+        
+        # Zombie can attack if within range but not overlapping
+        player_radius = (128 * self.scale * 0.4) // 2  # Use actual hitbox size
+        zombie_radius = (128 * zombie.scale * 0.4) // 2  # Use actual hitbox size
+        min_distance = player_radius + zombie_radius + 35  # Good separation distance
+        max_attack_distance = min_distance + 45  # Reasonable attack range
+        
+        return min_distance <= distance <= max_attack_distance
+
     def get_image(self):
         try:
             image = self.current_animation.get_current_frame()
             if image and image.get_width() > 0 and image.get_height() > 0:
-                # Define scaled_size first
                 scaled_size = (int(128 * self.scale), int(128 * self.scale))
                 
                 if not self.facing_right:
@@ -422,6 +572,7 @@ class Player:
                 fallback.fill((255, 255, 0))  
                 return fallback
         except Exception as e:
+            print(f"Error in get_image: {e}")  # Debug output
             fallback = pygame.Surface((int(128 * self.scale), int(128 * self.scale)))
             fallback.fill((255, 0, 255))  
             return fallback
@@ -497,7 +648,6 @@ class Player:
 
     def draw_screen_flash(self, screen):
         if self.screen_flash_timer > 0:
-            # Create a red overlay that covers the entire screen
             window_width = screen.get_width()
             window_height = screen.get_height()
             flash_alpha = int(150 * (self.screen_flash_timer / self.screen_flash_duration))
@@ -506,55 +656,44 @@ class Player:
             screen.blit(flash_surface, (0, 0))
 
     def get_current_spawn_rate(self):
-        """Get current spawn rate based on score - mais agressivo a cada 100 pontos"""
-        # Reduzir spawn rate mais drasticamente a cada 100 pontos
         points_per_level = 100
         current_level = self.score // points_per_level
         
-        # Redução mais agressiva: 100ms por nível (cada 100 pontos)
         rate_decrease_per_level = 100
         current_rate = self.base_spawn_rate - (current_level * rate_decrease_per_level)
         
         return max(current_rate, self.min_spawn_rate)
 
     def draw_score_and_record(self, screen):
-        """Draw score, high score, and record message"""
         font = pygame.font.SysFont("Arial", 24)
         
-        # Draw current score
         score_text = f"Score: {self.score}"
         score_surface = font.render(score_text, True, (255, 255, 255))
         screen.blit(score_surface, (10, 10))
         
-        # Draw high score
         high_score_text = f"High Score: {self.high_score}"
         high_score_surface = font.render(high_score_text, True, (255, 255, 0))
         screen.blit(high_score_surface, (10, 40))
-        
-        # Draw spawn level indicator - mostrar nível de dificuldade baseado em pontuação
+
         difficulty_level = self.score // 100
         level_text = f"Difficulty Level: {difficulty_level}"
         level_surface = font.render(level_text, True, (0, 255, 255))
         screen.blit(level_surface, (10, 70))
         
-        # Mostrar número atual de zumbis (informativo)
         zombie_info_text = f"Zombie Target: {min(30, 3 + difficulty_level)}"
         zombie_info_surface = font.render(zombie_info_text, True, (255, 165, 0))
         screen.blit(zombie_info_surface, (10, 100))
         
-        # Draw record broken message during gameplay
         if self.record_message_timer > 0:
             big_font = pygame.font.SysFont("Arial", 48, bold=True)
             record_text = "NEW RECORD!"
-            record_surface = big_font.render(record_text, True, (255, 215, 0))  # Gold color
+            record_surface = big_font.render(record_text, True, (255, 215, 0))  
             
-            # Center the message on screen
             screen_width = screen.get_width()
             screen_height = screen.get_height()
             text_rect = record_surface.get_rect()
             text_rect.center = (screen_width // 2, screen_height // 3)
             
-            # Add a background for better visibility
             background_rect = text_rect.inflate(40, 20)
             pygame.draw.rect(screen, (0, 0, 0, 180), background_rect)
             pygame.draw.rect(screen, (255, 215, 0), background_rect, 3)
