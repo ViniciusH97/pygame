@@ -338,10 +338,6 @@ class Player:
                 self.world_x = 0
                 movement = 0  # Cancelar movimento para a esquerda
             
-            # UPDATE HITBOX POSITION - This was missing!
-            self.rect.x = self.world_x
-            self.rect.y = self.world_y
-            
             # Rastrear movimento para IA dos zumbis
             self.last_movement = movement
             
@@ -519,13 +515,13 @@ class Player:
         distance = (dx**2 + dy**2)**0.5
         
         if distance == 0:
-            # If zombie is exactly on player, push it in a random direction
+            # se o zumbi está exatamente na posição do jogador, escolher uma direção aleatória
             import random
             angle = random.uniform(0, 2 * 3.14159)
             dx = min_distance * math.cos(angle)
             dy = min_distance * math.sin(angle)
         else:
-            # Normalize direction
+            # normalizar a direção
             dx_norm = dx / distance
             dy_norm = dy / distance
             dx = dx_norm * min_distance
@@ -538,7 +534,6 @@ class Player:
         return ideal_x, ideal_y
     
     def is_zombie_in_attack_range(self, zombie):
-        """Check if zombie is close enough to attack player (but not overlapping)"""
         player_center_x = self.world_x + (128 * self.scale) // 2
         player_center_y = self.world_y + (128 * self.scale) // 2
         zombie_center_x = zombie.world_x + (128 * zombie.scale) // 2
@@ -612,23 +607,20 @@ class Player:
         
         can_start_running = self.current_stamina > self.max_stamina / 2
         if can_start_running:
-            stamina_color = (0, 150, 255)  # Azul claro (pode começar a correr)
+            stamina_color = (0, 150, 255)  # Azul claro, jogador pode correr
         else:
-            stamina_color = (255, 165, 0)  # Laranja (recuperando - não pode começar a correr)
+            stamina_color = (255, 165, 0)  # Laranja recuperando stamina, jogador fica impedido de correr
             
         pygame.draw.rect(screen, stamina_color, (bar_x, stamina_y, bar_width, current_stamina_height))
         
-        # Border
         pygame.draw.rect(screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2)
         
     def draw_ammo_counter(self, screen):
-        """Desenhar contador de munição em texto ao lado das barras"""
         window_height = screen.get_height()
         
         text_x = 100  
         text_y = window_height - 140 
         
-        # Fonte maior para o contador
         font = pygame.font.SysFont("Arial", 32)  
         ammo_text = f"{self.current_ammo}/{self.reserve_ammo}"
         
@@ -641,7 +633,6 @@ class Player:
         
         text_surface = font.render(ammo_text, True, color)
         
-        # Centralizar o texto na posição
         text_rect_x = text_x - text_surface.get_width() // 2
         
         screen.blit(text_surface, (text_rect_x, text_y))

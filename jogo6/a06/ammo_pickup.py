@@ -11,7 +11,7 @@ class AmmoPickup:
         self.collected = False
         self.ammo_amount = 3  
     
-        hitbox_size = 90  
+        hitbox_size = 60 
         self.rect = pygame.Rect(x - hitbox_size//2, y - hitbox_size//2, hitbox_size, hitbox_size)
         
         BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -45,20 +45,29 @@ class AmmoPickup:
     def check_collision(self, player):
         if self.collected:
             return False
+        
+        # Verificar se o player pode carregar mais munição
+        can_collect = (player.current_ammo < player.max_ammo) or (player.reserve_ammo < player.max_reserve_ammo)
+        
+        if not can_collect:
+            return False
+            
+        hitbox_collision = self.rect.colliderect(player.rect)
+        
+        if hitbox_collision:
+            player.reserve_ammo = min(player.max_reserve_ammo, player.reserve_ammo + self.ammo_amount)
+            self.collected = True
+            return True
             
         distance_x = abs(self.world_x - player.world_x)
         distance_y = abs(self.world_y - player.world_y)
         total_distance = (distance_x**2 + distance_y**2)**0.5
         
-        collision_detected = (total_distance < 100) or self.rect.colliderect(player.rect)
-        
-        if collision_detected:
-            # Verificar se o player pode carregar mais munição na reserva
-            if player.reserve_ammo < player.max_reserve_ammo:
-                # Adicionar 3 balas à reserva do player
-                player.reserve_ammo = min(player.max_reserve_ammo, player.reserve_ammo + self.ammo_amount)
-                self.collected = True
-                return True
+        if total_distance < 80: 
+            player.reserve_ammo = min(player.max_reserve_ammo, player.reserve_ammo + self.ammo_amount)
+            self.collected = True
+            return True
+            
         return False
     
     def draw(self, screen, camera_x):

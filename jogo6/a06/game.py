@@ -109,9 +109,14 @@ def game(selected_character="Raider_1", display_manager=None):
         
         player_image = player.get_image()
         
+        # CORRIGIR: Ajustar hitbox para ficar no centro-base do player visual
+        # O hitbox precisa estar onde o player realmente está na tela
+        sprite_width = int(128 * player.scale)
+        sprite_height = int(128 * player.scale)
         
-        hitbox_offset_x = (int(128 * player.scale) - player.rect.width) // 2
-        hitbox_offset_y = int(128 * player.scale) - player.rect.height - 20  
+        # Centralizar horizontalmente e posicionar na base do sprite
+        hitbox_offset_x = (sprite_width - player.rect.width) // 2
+        hitbox_offset_y = sprite_height - player.rect.height - 30  # Na base do personagem
         
         player.rect.x = player.world_x + hitbox_offset_x
         player.rect.y = player.world_y + hitbox_offset_y

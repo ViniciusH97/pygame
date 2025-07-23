@@ -138,6 +138,7 @@ class ZombieSpawner:
         # Desenhar munições
         for ammo in self.ammo_pickups:
             ammo.draw(screen, camera_x)
+            
                 
     def check_player_attacks(self, player, score_manager=None):
         is_attacking = False
