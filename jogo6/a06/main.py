@@ -26,7 +26,7 @@ Para adicionar novos recursos:
 
 import pygame
 from pygame.locals import *
-from menu import menu, instructions
+from menu import menu, instructions, ranking
 from game import game
 
 class DisplayManager:
@@ -61,6 +61,8 @@ def main():
                 current_state = game("Raider_1", display_manager)
             elif current_state == "instructions":
                 current_state = instructions(display_manager)
+            elif current_state == "ranking":
+                current_state = ranking(display_manager)
             elif current_state == "exit":
                 break
     except Exception as e:

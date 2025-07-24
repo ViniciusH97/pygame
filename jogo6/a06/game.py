@@ -5,6 +5,7 @@ from background import Background
 from player import Player
 from zombie_spawner import ZombieSpawner
 from score_manager import ScoreManager
+from menu import get_player_name
 
 def create_game_background():
     """Create and return game background"""
@@ -46,6 +47,8 @@ def game(selected_character="Raider_1", display_manager=None):
     
     max_camera_x = 0
     game_over_state = False  # Flag para controlar estado do game over
+    name_saved = False  # Flag para controlar se o nome já foi salvo no ranking
+    show_name_input = False  # Flag para controlar quando mostrar a entrada de nome
     
     while running:
         dt = clock.tick(60)
@@ -66,7 +69,12 @@ def game(selected_character="Raider_1", display_manager=None):
                 # Controles da tela de game over
                 elif game_over_state and player.is_dead:
                     if event.key == K_RETURN:
-                        return "game"  # Reiniciar jogo
+                        if not show_name_input:
+                            # Primeira vez pressionando ENTER - mostrar entrada de nome
+                            show_name_input = True
+                        else:
+                            # Segunda vez (após salvar nome) - reiniciar jogo
+                            return "game"
                     elif event.key == K_ESCAPE:
                         return "menu"  # Voltar ao menu
                     
@@ -160,6 +168,18 @@ def game(selected_character="Raider_1", display_manager=None):
             score_manager.set_game_over()
             game_over_state = True
             
+            # Verificar se precisa obter o nome do jogador (apenas quando solicitado)
+            if show_name_input and not name_saved:
+                # Salvar temporariamente o estado atual
+                pygame.mouse.set_visible(True)
+                player_name = get_player_name()
+                pygame.mouse.set_visible(False)
+                
+                if player_name:
+                    score_manager.add_score_to_ranking(player_name)
+                name_saved = True
+                show_name_input = False  # Resetar flag
+            
             # Criar fundo estático escuro para game over
             overlay = pygame.Surface((window_width, window_height))
             overlay.fill((0, 0, 0))
@@ -186,7 +206,11 @@ def game(selected_character="Raider_1", display_manager=None):
                 medium_font = pygame.font.SysFont("Arial", 32)
                 record_font = pygame.font.SysFont("Arial", 48) 
             
-            record_text = record_font.render(f"RECORD: {stats['high_score']}", True, (255, 215, 0))  
+            # Record com nome do jogador
+            if stats['high_score_name']:
+                record_text = record_font.render(f"RECORD: {stats['high_score']} - {stats['high_score_name']}", True, (255, 215, 0))
+            else:
+                record_text = record_font.render(f"RECORD: {stats['high_score']}", True, (255, 215, 0))
             record_rect = record_text.get_rect(center=(window_width // 2, window_height // 2 - 100))
             screen.blit(record_text, record_rect)
 
@@ -204,7 +228,10 @@ def game(selected_character="Raider_1", display_manager=None):
             
             # Instruções de controle
             restart_font = pygame.font.SysFont("Impact", 28)
-            restart_text = restart_font.render("Pressione ENTER para jogar novamente", True, (200, 200, 200))
+            if not name_saved:
+                restart_text = restart_font.render("Pressione ENTER para salvar no ranking e jogar novamente", True, (200, 200, 200))
+            else:
+                restart_text = restart_font.render("Pressione ENTER para jogar novamente", True, (200, 200, 200))
             restart_rect = restart_text.get_rect(center=(window_width // 2, window_height - 120))
             screen.blit(restart_text, restart_rect)
             
